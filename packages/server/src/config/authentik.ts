@@ -1,50 +1,47 @@
-import * as oauth from 'openid-client';
+import { Issuer, Client, generators } from 'openid-client';
 import { config } from './env';
 
-interface AuthentikConfig {
-  issuer: string;
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-}
+let client: Client | null = null;
 
-let authConfig: AuthentikConfig | null = null;
+export async function initializeAuthentikClient(): Promise<Client> {
+  if (client) {
+    return client;
+  }
 
-export async function initializeAuthentikClient(): Promise<void> {
   try {
-    authConfig = {
-      issuer: config.authentik.issuer,
-      clientId: config.authentik.clientId,
-      clientSecret: config.authentik.clientSecret,
-      redirectUri: config.authentik.redirectUri,
-    };
+    const issuer = await Issuer.discover(config.authentik.issuer);
 
-    // Verify the issuer is reachable
-    const issuerUrl = new URL(config.authentik.issuer);
-    await oauth.discoveryRequest(issuerUrl);
+    client = new issuer.Client({
+      client_id: config.authentik.clientId,
+      client_secret: config.authentik.clientSecret,
+      redirect_uris: [config.authentik.redirectUri],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'client_secret_post',
+    });
 
     console.log('Authentik client initialized successfully');
+    return client;
   } catch (error) {
     console.error('Failed to initialize Authentik client:', error);
     throw error;
   }
 }
 
-export function getAuthentikConfig(): AuthentikConfig {
-  if (!authConfig) {
+export function getAuthentikClient(): Client {
+  if (!client) {
     throw new Error('Authentik client not initialized. Call initializeAuthentikClient() first.');
   }
-  return authConfig;
+  return client;
 }
 
 export function generateCodeVerifier(): string {
-  return oauth.randomPKCECodeVerifier();
+  return generators.codeVerifier();
 }
 
 export function generateCodeChallenge(verifier: string): string {
-  return oauth.calculatePKCECodeChallenge(verifier);
+  return generators.codeChallenge(verifier);
 }
 
 export function generateState(): string {
-  return oauth.randomState();
+  return generators.state();
 }

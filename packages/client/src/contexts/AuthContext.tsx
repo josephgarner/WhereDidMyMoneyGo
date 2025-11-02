@@ -20,8 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
+    } catch (error: any) {
+      // Don't log 401 errors - they're expected when not logged in
+      if (error?.response?.status !== 401) {
+        console.error('Failed to fetch user:', error);
+      }
       setUser(null);
     }
   };

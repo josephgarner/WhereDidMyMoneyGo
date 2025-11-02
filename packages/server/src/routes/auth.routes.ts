@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import * as oauth from 'openid-client';
 import {
-  getAuthentikConfig,
+  getAuthentikClient,
   generateCodeVerifier,
   generateCodeChallenge,
   generateState
@@ -14,7 +13,7 @@ const router = Router();
 // Start authentication flow
 router.get('/login', (req, res) => {
   try {
-    const authConfig = getAuthentikConfig();
+    const client = getAuthentikClient();
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
     const state = generateState();
@@ -23,18 +22,14 @@ router.get('/login', (req, res) => {
     req.session.codeVerifier = codeVerifier;
     req.session.state = state;
 
-    const issuerUrl = new URL(authConfig.issuer);
-    const authUrl = oauth.buildAuthorizationUrl(issuerUrl, {
-      client_id: authConfig.clientId,
-      redirect_uri: authConfig.redirectUri,
-      response_type: 'code',
+    const authUrl = client.authorizationUrl({
       scope: 'openid email profile',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
       state,
     });
 
-    res.json({ success: true, data: { url: authUrl.href } });
+    res.json({ success: true, data: { url: authUrl } });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -47,7 +42,8 @@ router.get('/login', (req, res) => {
 // Handle OAuth callback
 router.get('/callback', async (req, res) => {
   try {
-    const authConfig = getAuthentikConfig();
+    const client = getAuthentikClient();
+    const params = client.callbackParams(req);
     const { codeVerifier, state } = req.session;
 
     if (!codeVerifier || !state) {
@@ -57,70 +53,32 @@ router.get('/callback', async (req, res) => {
       });
     }
 
-    const currentUrl = new URL(
-      req.url,
-      `${req.protocol}://${req.get('host')}`
-    );
-
     // Verify state matches
-    const params = oauth.validateAuthResponse(
-      new URL(authConfig.issuer),
-      authConfig.clientId,
-      currentUrl,
-      state
-    );
-
-    if (oauth.isOAuth2Error(params)) {
-      console.error('OAuth error:', params);
-      return res.redirect(`${config.clientUrl}/auth/callback?success=false`);
+    if (params.state !== state) {
+      return res.status(400).json({
+        success: false,
+        error: 'State mismatch'
+      });
     }
 
-    const issuerUrl = new URL(authConfig.issuer);
-    const authorizationServer = await oauth
-      .discoveryRequest(issuerUrl)
-      .then((response) => oauth.processDiscoveryResponse(issuerUrl, response));
+    // Manually exchange the authorization code for tokens
+    // This avoids the encrypted ID token validation issue
+    const tokenSet = await client.grant({
+      grant_type: 'authorization_code',
+      code: params.code,
+      redirect_uri: config.authentik.redirectUri,
+      code_verifier: codeVerifier,
+    });
 
-    const tokenSet = await oauth
-      .authorizationCodeGrantRequest(
-        authorizationServer,
-        authConfig,
-        params,
-        authConfig.redirectUri,
-        codeVerifier
-      )
-      .then((response) =>
-        oauth.processAuthorizationCodeResponse(
-          authorizationServer,
-          authConfig,
-          response
-        )
-      );
-
-    const claims = oauth.getValidatedIdTokenClaims(tokenSet);
-
-    // Get additional user info if needed
-    let userInfo: any = claims;
-    if (authorizationServer.userinfo_endpoint && tokenSet.access_token) {
-      const userInfoResponse = await oauth.userInfoRequest(
-        authorizationServer,
-        authConfig,
-        tokenSet.access_token
-      );
-      userInfo = await oauth.processUserInfoResponse(
-        authorizationServer,
-        authConfig,
-        claims.sub,
-        userInfoResponse
-      );
-    }
-
+    // Get user info from userinfo endpoint
+    const userInfo = await client.userinfo(tokenSet.access_token!);
     const authentikUser = userInfo as AuthentikUserInfo;
 
     // Map Authentik user to our User type
     const user: User = {
       id: authentikUser.sub,
       email: authentikUser.email,
-      username: authentikUser.preferred_username || authentikUser.email,
+      username: authentikUser.preferred_username,
       name: authentikUser.name,
       groups: authentikUser.groups,
     };
