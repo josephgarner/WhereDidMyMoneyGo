@@ -6,7 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': {
+      // Only proxy auth API calls to the server
+      // Don't proxy /auth/callback which is a client-side route
+      '^/auth/(login|logout|me)': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       },

@@ -11,13 +11,16 @@ export function AuthCallbackPage() {
   useEffect(() => {
     const success = searchParams.get('success');
 
-    if (success === 'true') {
-      refreshUser().then(() => {
+    const handleCallback = async () => {
+      if (success === 'true') {
+        await refreshUser();
         navigate('/', { replace: true });
-      });
-    } else {
-      navigate('/login', { replace: true });
-    }
+      } else {
+        navigate('/login', { replace: true });
+      }
+    };
+
+    handleCallback();
   }, [searchParams, navigate, refreshUser]);
 
   return (

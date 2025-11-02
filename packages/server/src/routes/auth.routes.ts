@@ -90,8 +90,15 @@ router.get('/callback', async (req, res) => {
     delete req.session.codeVerifier;
     delete req.session.state;
 
-    // Redirect to client
-    res.redirect(`${config.clientUrl}/auth/callback?success=true`);
+    // Save session before redirect to ensure it's persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.redirect(`${config.clientUrl}/auth/callback?success=false`);
+      }
+      // Redirect to client
+      res.redirect(`${config.clientUrl}/auth/callback?success=true`);
+    });
   } catch (error) {
     console.error('Callback error:', error);
     res.redirect(`${config.clientUrl}/auth/callback?success=false`);

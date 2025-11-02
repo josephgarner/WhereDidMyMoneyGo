@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '@finances/shared';
 import { authApi } from '../api/auth';
 
@@ -16,7 +16,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
@@ -27,29 +27,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setUser(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));
-  }, []);
+  }, [refreshUser]);
 
-  const login = async () => {
+  const login = useCallback(async () => {
     try {
       const loginUrl = await authApi.getLoginUrl();
       window.location.href = loginUrl;
     } catch (error) {
       console.error('Login failed:', error);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
