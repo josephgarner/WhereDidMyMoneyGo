@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: packages/server/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - AUTHENTIK_ISSUER=${AUTHENTIK_ISSUER}
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET}
+      - AUTHENTIK_REDIRECT_URI=${AUTHENTIK_REDIRECT_URI:-http://localhost:3001/auth/callback}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+    restart: unless-stopped
+    networks:
+      - finances-network
+
+networks:
+  finances-network:
+    driver: bridge
