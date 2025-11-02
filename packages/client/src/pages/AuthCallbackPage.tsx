@@ -24,10 +24,10 @@ export function AuthCallbackPage() {
   }, [searchParams, navigate, refreshUser]);
 
   return (
-    <Center h="100vh">
+    <Center h="100vh" bg="gray.900">
       <VStack spacing={4}>
-        <Spinner size="xl" />
-        <Text>Completing authentication...</Text>
+        <Spinner size="xl" color="sage.500" thickness="4px" />
+        <Text color="earth.200">Completing authentication...</Text>
       </VStack>
     </Center>
   );

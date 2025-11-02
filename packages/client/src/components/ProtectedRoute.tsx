@@ -11,8 +11,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <Center h="100vh">
-        <Spinner size="xl" />
+      <Center h="100vh" bg="gray.900">
+        <Spinner size="xl" color="sage.500" thickness="4px" />
       </Center>
     );
   }

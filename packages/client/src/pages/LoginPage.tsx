@@ -14,16 +14,25 @@ export function LoginPage() {
   }, [user, navigate]);
 
   return (
-    <Container maxW="md" centerContent>
-      <Box mt={20} p={8} borderWidth={1} borderRadius="lg" boxShadow="lg">
-        <VStack spacing={6}>
-          <Heading size="lg">Finance Manager</Heading>
-          <Text color="gray.600">Please sign in to continue</Text>
-          <Button colorScheme="blue" size="lg" onClick={login}>
-            Sign in with Authentik
-          </Button>
-        </VStack>
-      </Box>
-    </Container>
+    <Box minH="100vh" bg="gray.900" display="flex" alignItems="center" justifyContent="center">
+      <Container maxW="md" centerContent>
+        <Box
+          p={8}
+          borderWidth={1}
+          borderColor="gray.700"
+          borderRadius="lg"
+          boxShadow="2xl"
+          bg="gray.800"
+        >
+          <VStack spacing={6}>
+            <Heading size="lg" color="earth.100">Finance Manager</Heading>
+            <Text color="earth.300">Please sign in to continue</Text>
+            <Button colorScheme="sage" size="lg" onClick={login} width="full">
+              Sign in with Authentik
+            </Button>
+          </VStack>
+        </Box>
+      </Container>
+    </Box>
   );
 }
