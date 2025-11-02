@@ -1,6 +1,7 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Box, Spinner, Center } from '@chakra-ui/react';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Box, Spinner, Center } from "@chakra-ui/react";
+import { Layout } from "../pages/Layout";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,8 +12,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <Center h="100vh" bg="gray.900">
-        <Spinner size="xl" color="sage.500" thickness="4px" />
+      <Center h="100vh" bg="navy.900">
+        <Spinner size="xl" color="teal.500" thickness="4px" />
       </Center>
     );
   }
@@ -21,5 +22,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return <Layout>{children}</Layout>;
 }

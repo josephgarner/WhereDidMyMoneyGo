@@ -14,20 +14,20 @@ export function LoginPage() {
   }, [user, navigate]);
 
   return (
-    <Box minH="100vh" bg="gray.900" display="flex" alignItems="center" justifyContent="center">
+    <Box minH="100vh" bg="navy.900" display="flex" alignItems="center" justifyContent="center">
       <Container maxW="md" centerContent>
         <Box
           p={8}
           borderWidth={1}
-          borderColor="gray.700"
+          borderColor="navy.700"
           borderRadius="lg"
           boxShadow="2xl"
-          bg="gray.800"
+          bg="navy.800"
         >
           <VStack spacing={6}>
-            <Heading size="lg" color="earth.100">Finance Manager</Heading>
-            <Text color="earth.300">Please sign in to continue</Text>
-            <Button colorScheme="sage" size="lg" onClick={login} width="full">
+            <Heading size="lg" color="cream.100">Finance Manager</Heading>
+            <Text color="cream.300">Please sign in to continue</Text>
+            <Button colorScheme="teal" size="lg" onClick={login} width="full">
               Sign in with Authentik
             </Button>
           </VStack>

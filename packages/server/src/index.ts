@@ -5,6 +5,7 @@ import session from 'express-session';
 import { config, validateConfig } from './config/env';
 import { initializeAuthentikClient } from './config/authentik';
 import authRoutes from './routes/auth.routes';
+import accountBooksRoutes from './routes/accountBooks.routes';
 
 async function startServer() {
   // Validate configuration
@@ -41,6 +42,7 @@ async function startServer() {
 
   // Routes
   app.use('/auth', authRoutes);
+  app.use('/api/account-books', accountBooksRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

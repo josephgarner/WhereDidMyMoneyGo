@@ -1,54 +1,45 @@
 import {
-  Box,
-  Container,
+  Image,
   Heading,
   Text,
   VStack,
   Card,
   CardBody,
+  Flex,
+  Spacer,
+  CardFooter,
+  Button,
+  HStack,
+  CardHeader,
 } from "@chakra-ui/react";
-import { useAuth } from "../contexts/AuthContext";
-import { Nav } from "../components/Nav";
+import { useAccountBooks } from "../hooks";
 
 export function HomePage() {
-  const { user } = useAuth();
+  const { accountBooks, loading, error } = useAccountBooks();
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (error) {
+    return <Text>Error: {error}</Text>;
+  }
 
   return (
-    <Box minH="100vh" bg="gray.900">
-      <Nav />
-
-      <Container maxW="container.xl" py={8}>
-        <VStack spacing={6} align="stretch">
-          <Card>
-            <CardBody>
-              <VStack align="start" spacing={4}>
-                <Heading size="lg" color="earth.100">Welcome to Finance Manager!</Heading>
-                <Text color="earth.300">
-                  You are successfully authenticated with Authentik.
-                </Text>
-                <Box p={4} bg="gray.700" borderRadius="md" w="full" borderWidth="1px" borderColor="gray.600">
-                  <VStack align="start" spacing={2}>
-                    <Text color="earth.200">
-                      <strong>User ID:</strong> {user?.id}
-                    </Text>
-                    <Text color="earth.200">
-                      <strong>Email:</strong> {user?.email}
-                    </Text>
-                    <Text color="earth.200">
-                      <strong>Username:</strong> {user?.username}
-                    </Text>
-                    {user?.groups && user.groups.length > 0 && (
-                      <Text color="earth.200">
-                        <strong>Groups:</strong> {user.groups.join(", ")}
-                      </Text>
-                    )}
-                  </VStack>
-                </Box>
-              </VStack>
-            </CardBody>
-          </Card>
-        </VStack>
-      </Container>
-    </Box>
+    <Flex gap="4">
+      {accountBooks.map((accountBook) => (
+        <Card maxW="sm" overflow="hidden">
+          <Image src="./assets/organic_68755222.jpg" />
+          <CardFooter>
+            <HStack flexGrow={1} justify={"space-between"}>
+              <Heading size="md" color="cream.100">
+                {accountBook.name}
+              </Heading>
+              <Button>Open</Button>
+            </HStack>
+          </CardFooter>
+        </Card>
+      ))}
+    </Flex>
   );
 }
