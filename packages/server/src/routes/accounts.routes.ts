@@ -68,7 +68,7 @@ router.get('/:accountId/transactions/metadata', async (req, res) => {
 router.get('/:accountId/transactions', async (req, res) => {
   try {
     const { accountId } = req.params;
-    const { startDate, endDate, month, page = '1', limit = '30' } = req.query;
+    const { startDate, endDate, month, page = '1', limit = '20' } = req.query;
 
     // Parse pagination params
     const pageNum = parseInt(page as string, 10);

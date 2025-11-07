@@ -30,7 +30,7 @@ export function AccountsPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({ type: 'all' });
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(20);
 
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
@@ -151,100 +151,119 @@ export function AccountsPage() {
               )}
 
               <Card minH="500px">
-                <CardBody>
+                <CardBody position="relative">
                   {!selectedAccountId ? (
                     <Box display="flex" alignItems="center" justifyContent="center" minH="400px">
                       <Text color="cream.400">Select an account to view transactions</Text>
-                    </Box>
-                  ) : transactionsLoading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minH="400px">
-                      <Spinner size="lg" color="teal.500" thickness="3px" />
                     </Box>
                   ) : transactionsError ? (
                     <Box display="flex" alignItems="center" justifyContent="center" minH="400px">
                       <Text color="coral.500">Error: {transactionsError}</Text>
                     </Box>
+                  ) : transactions.length === 0 && transactionsLoading ? (
+                    <Box display="flex" alignItems="center" justifyContent="center" minH="400px">
+                      <Spinner size="lg" color="teal.500" thickness="3px" />
+                    </Box>
                   ) : (
-                    <VStack align="stretch" spacing={4}>
-                      <Heading size="md" color="cream.100">
-                        {selectedAccount?.name} - Transactions
-                      </Heading>
-
-                      {transactions.length === 0 ? (
-                        <Box display="flex" alignItems="center" justifyContent="center" minH="300px">
-                          <Text color="cream.400">No transactions found for this account</Text>
+                    <Box position="relative">
+                      {transactionsLoading && (
+                        <Box
+                          position="absolute"
+                          top={0}
+                          left={0}
+                          right={0}
+                          bottom={0}
+                          bg="rgba(26, 35, 50, 0.7)"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          zIndex={10}
+                          borderRadius="md"
+                        >
+                          <Spinner size="lg" color="teal.500" thickness="3px" />
                         </Box>
-                      ) : (
-                        <TableContainer>
-                          <Table variant="simple" size="sm">
-                            <Thead>
-                              <Tr>
-                                <Th color="cream.300" width="110px">Date</Th>
-                                <Th color="cream.300" width="250px">Description</Th>
-                                <Th color="cream.300" width="150px">Category</Th>
-                                <Th color="cream.300" width="100px" isNumeric>Debit</Th>
-                                <Th color="cream.300" width="100px" isNumeric>Credit</Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {transactions.map((transaction) => (
-                                <Tr key={transaction.id}>
-                                  <Td color="cream.200" width="110px">
-                                    {new Date(transaction.transactionDate).toLocaleDateString()}
-                                  </Td>
-                                  <Td color="cream.200" width="250px" maxW="250px">
-                                    <Text
-                                      whiteSpace="normal"
-                                      wordBreak="break-word"
-                                      noOfLines={2}
-                                      title={transaction.description}
-                                    >
-                                      {transaction.description}
-                                    </Text>
-                                  </Td>
-                                  <Td width="150px">
-                                    <VStack align="start" spacing={1}>
-                                      <Badge colorScheme="teal" fontSize="xs">
-                                        {transaction.category}
-                                      </Badge>
-                                      {transaction.subCategory && (
-                                        <Badge colorScheme="purple" fontSize="xs">
-                                          {transaction.subCategory}
-                                        </Badge>
-                                      )}
-                                    </VStack>
-                                  </Td>
-                                  <Td color="coral.400" width="100px" isNumeric fontWeight="medium">
-                                    {parseFloat(transaction.debitAmount) > 0
-                                      ? `$${parseFloat(transaction.debitAmount).toFixed(2)}`
-                                      : '-'}
-                                  </Td>
-                                  <Td color="powder.400" width="100px" isNumeric fontWeight="medium">
-                                    {parseFloat(transaction.creditAmount) > 0
-                                      ? `$${parseFloat(transaction.creditAmount).toFixed(2)}`
-                                      : '-'}
-                                  </Td>
-                                </Tr>
-                              ))}
-                            </Tbody>
-                          </Table>
-                        </TableContainer>
                       )}
+                      <VStack align="stretch" spacing={4}>
+                        <Heading size="md" color="cream.100">
+                          {selectedAccount?.name} - Transactions
+                        </Heading>
 
-                      {pagination && pagination.totalPages > 1 && (
-                        <Pagination
-                          currentPage={pagination.page}
-                          totalPages={pagination.totalPages}
-                          totalCount={pagination.totalCount}
-                          pageSize={pagination.limit}
-                          onPageChange={setCurrentPage}
-                          onPageSizeChange={(size) => {
-                            setPageSize(size);
-                            setCurrentPage(1);
-                          }}
-                        />
-                      )}
-                    </VStack>
+                        {transactions.length === 0 ? (
+                          <Box display="flex" alignItems="center" justifyContent="center" minH="300px">
+                            <Text color="cream.400">No transactions found for this account</Text>
+                          </Box>
+                        ) : (
+                          <TableContainer>
+                            <Table variant="simple" size="sm">
+                              <Thead>
+                                <Tr>
+                                  <Th color="cream.300" width="110px">Date</Th>
+                                  <Th color="cream.300" width="250px">Description</Th>
+                                  <Th color="cream.300" width="150px">Category</Th>
+                                  <Th color="cream.300" width="100px" isNumeric>Debit</Th>
+                                  <Th color="cream.300" width="100px" isNumeric>Credit</Th>
+                                </Tr>
+                              </Thead>
+                              <Tbody>
+                                {transactions.map((transaction) => (
+                                  <Tr key={transaction.id}>
+                                    <Td color="cream.200" width="110px">
+                                      {new Date(transaction.transactionDate).toLocaleDateString()}
+                                    </Td>
+                                    <Td color="cream.200" width="250px" maxW="250px">
+                                      <Text
+                                        whiteSpace="normal"
+                                        wordBreak="break-word"
+                                        noOfLines={2}
+                                        title={transaction.description}
+                                      >
+                                        {transaction.description}
+                                      </Text>
+                                    </Td>
+                                    <Td width="150px">
+                                      <VStack align="start" spacing={1}>
+                                        <Badge colorScheme="teal" fontSize="xs">
+                                          {transaction.category}
+                                        </Badge>
+                                        {transaction.subCategory && (
+                                          <Badge colorScheme="purple" fontSize="xs">
+                                            {transaction.subCategory}
+                                          </Badge>
+                                        )}
+                                      </VStack>
+                                    </Td>
+                                    <Td color="coral.400" width="100px" isNumeric fontWeight="medium">
+                                      {parseFloat(transaction.debitAmount) > 0
+                                        ? `$${parseFloat(transaction.debitAmount).toFixed(2)}`
+                                        : '-'}
+                                    </Td>
+                                    <Td color="powder.400" width="100px" isNumeric fontWeight="medium">
+                                      {parseFloat(transaction.creditAmount) > 0
+                                        ? `$${parseFloat(transaction.creditAmount).toFixed(2)}`
+                                        : '-'}
+                                    </Td>
+                                  </Tr>
+                                ))}
+                              </Tbody>
+                            </Table>
+                          </TableContainer>
+                        )}
+
+                        {pagination && pagination.totalPages > 1 && (
+                          <Pagination
+                            currentPage={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalCount={pagination.totalCount}
+                            pageSize={pagination.limit}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size) => {
+                              setPageSize(size);
+                              setCurrentPage(1);
+                            }}
+                          />
+                        )}
+                      </VStack>
+                    </Box>
                   )}
                 </CardBody>
               </Card>

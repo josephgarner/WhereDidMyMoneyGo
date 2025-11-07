@@ -126,7 +126,7 @@ export function Pagination({
             }}
           >
             <option value={10} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>10</option>
-            <option value={30} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>30</option>
+            <option value={20} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>20</option>
             <option value={50} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>50</option>
             <option value={100} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>100</option>
           </Select>
