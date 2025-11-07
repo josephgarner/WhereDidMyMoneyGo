@@ -7,6 +7,11 @@ export interface TransactionMetadata {
   availableMonths: string[];
 }
 
+export interface CategorySuggestions {
+  categories: string[];
+  subCategories: string[];
+}
+
 export interface TransactionFilters {
   month?: string; // YYYY-MM
   startDate?: string; // YYYY-MM-DD
@@ -18,6 +23,15 @@ export interface TransactionFilters {
 export interface TransactionsResult {
   transactions: Transaction[];
   pagination: PaginationMeta | null;
+}
+
+export interface CreateTransactionData {
+  transactionDate: string; // ISO date string
+  description: string;
+  category: string;
+  subCategory?: string;
+  debitAmount?: string;
+  creditAmount?: string;
 }
 
 export const accountBooksApi = {
@@ -38,6 +52,13 @@ export const accountBooksApi = {
       `/api/accounts/${accountId}/transactions/metadata`
     );
     return response.data.data || { minDate: null, maxDate: null, availableMonths: [] };
+  },
+
+  async getCategorySuggestions(accountId: string): Promise<CategorySuggestions> {
+    const response = await apiClient.get<ApiResponse<CategorySuggestions>>(
+      `/api/accounts/${accountId}/categories`
+    );
+    return response.data.data || { categories: [], subCategories: [] };
   },
 
   async getTransactionsByAccountId(
@@ -69,5 +90,16 @@ export const accountBooksApi = {
       transactions: response.data.data || [],
       pagination: response.data.pagination || null,
     };
+  },
+
+  async createTransaction(
+    accountId: string,
+    data: CreateTransactionData
+  ): Promise<Transaction> {
+    const response = await apiClient.post<ApiResponse<Transaction>>(
+      `/api/accounts/${accountId}/transactions`,
+      data
+    );
+    return response.data.data as Transaction;
   },
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Transaction, PaginationMeta } from '@finances/shared';
 import { accountBooksApi, TransactionFilters } from '../api';
 
@@ -7,6 +7,11 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!accountId) {
@@ -35,7 +40,7 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
     }
 
     fetchTransactions();
-  }, [accountId, filters?.month, filters?.startDate, filters?.endDate, filters?.page, filters?.limit]);
+  }, [accountId, filters?.month, filters?.startDate, filters?.endDate, filters?.page, filters?.limit, refreshKey]);
 
-  return { transactions, pagination, loading, error };
+  return { transactions, pagination, loading, error, refetch };
 }

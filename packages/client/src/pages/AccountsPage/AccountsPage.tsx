@@ -20,7 +20,7 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { useAccounts, useTransactions, useTransactionMetadata } from '../../hooks';
-import { TransactionDateFilter, DateFilterValue } from '../../components/organisms/TransactionDateFilter';
+import { TransactionDateFilter, DateFilterValue, AddTransactionForm } from '../../components/organisms';
 import { Pagination } from '../../components/molecules';
 import { TransactionFilters } from '../../api';
 
@@ -63,10 +63,15 @@ export function AccountsPage() {
     return filters;
   }, [dateFilter, currentPage, pageSize]);
 
-  const { transactions, pagination, loading: transactionsLoading, error: transactionsError } = useTransactions(
+  const { transactions, pagination, loading: transactionsLoading, error: transactionsError, refetch } = useTransactions(
     selectedAccountId,
     transactionFilters
   );
+
+  // Function to refresh transactions after adding a new one
+  const handleTransactionAdded = () => {
+    refetch();
+  };
 
   if (accountsLoading) {
     return (
@@ -140,15 +145,28 @@ export function AccountsPage() {
 
           <GridItem>
             <VStack spacing={4} align="stretch">
-              {selectedAccountId && metadata.availableMonths.length > 0 && (
-                <TransactionDateFilter
-                  availableMonths={metadata.availableMonths}
-                  minDate={minDate}
-                  maxDate={maxDate}
-                  value={dateFilter}
-                  onChange={handleDateFilterChange}
-                />
-              )}
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
+                {selectedAccountId && (
+                  <GridItem>
+                    <AddTransactionForm
+                      accountId={selectedAccountId}
+                      onSuccess={handleTransactionAdded}
+                    />
+                  </GridItem>
+                )}
+
+                {selectedAccountId && metadata.availableMonths.length > 0 && (
+                  <GridItem>
+                    <TransactionDateFilter
+                      availableMonths={metadata.availableMonths}
+                      minDate={minDate}
+                      maxDate={maxDate}
+                      value={dateFilter}
+                      onChange={handleDateFilterChange}
+                    />
+                  </GridItem>
+                )}
+              </Grid>
 
               <Card minH="500px">
                 <CardBody position="relative">
