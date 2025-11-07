@@ -6,6 +6,7 @@ import { config, validateConfig } from './config/env';
 import { initializeAuthentikClient } from './config/authentik';
 import authRoutes from './routes/auth.routes';
 import accountBooksRoutes from './routes/accountBooks.routes';
+import accountsRoutes from './routes/accounts.routes';
 
 async function startServer() {
   // Validate configuration
@@ -43,6 +44,7 @@ async function startServer() {
   // Routes
   app.use('/auth', authRoutes);
   app.use('/api/account-books', accountBooksRoutes);
+  app.use('/api/accounts', accountsRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

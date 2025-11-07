@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { AccountBook, Account, ApiResponse } from '@finances/shared';
+import { AccountBook, Account, Transaction, ApiResponse } from '@finances/shared';
 
 export const accountBooksApi = {
   async getAllAccountBooks(): Promise<AccountBook[]> {
@@ -10,6 +10,13 @@ export const accountBooksApi = {
   async getAccountsByBookId(accountBookId: string): Promise<Account[]> {
     const response = await apiClient.get<ApiResponse<Account[]>>(
       `/api/account-books/${accountBookId}/accounts`
+    );
+    return response.data.data || [];
+  },
+
+  async getTransactionsByAccountId(accountId: string): Promise<Transaction[]> {
+    const response = await apiClient.get<ApiResponse<Transaction[]>>(
+      `/api/accounts/${accountId}/transactions`
     );
     return response.data.data || [];
   },
