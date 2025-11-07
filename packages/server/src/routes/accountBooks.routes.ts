@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, accountBooks, accounts, transactions } from '../db';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and, lte } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
 import { updateAccountBalance } from '../utils/accountBalances';
@@ -155,6 +155,114 @@ router.post('/:id/accounts', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create account',
+    });
+  }
+});
+
+// GET /api/account-books/:id/dashboard-data - Get dashboard data including historical balances and recent transactions
+router.get('/:id/dashboard-data', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify account book exists
+    const accountBook = await db
+      .select()
+      .from(accountBooks)
+      .where(eq(accountBooks.id, id))
+      .limit(1);
+
+    if (accountBook.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account book not found',
+      });
+    }
+
+    // Get all accounts for this book
+    const bookAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.accountBookId, id));
+
+    // Calculate last 6 months
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    // Build historical balance data for each account
+    const historicalData = [];
+    for (const account of bookAccounts) {
+      const monthlyBalances = [];
+
+      // For each of the last 6 months
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+        const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+
+        // Calculate balance up to end of this month
+        const result = await db
+          .select({
+            totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
+            totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.accountId, account.id),
+              lte(transactions.transactionDate, monthEnd)
+            )
+          );
+
+        const totalDebits = parseFloat(result[0].totalDebits || '0');
+        const totalCredits = parseFloat(result[0].totalCredits || '0');
+        const balance = totalCredits - totalDebits;
+
+        monthlyBalances.push({
+          month: monthKey,
+          balance: parseFloat(balance.toFixed(2)),
+        });
+      }
+
+      historicalData.push({
+        accountId: account.id,
+        accountName: account.name,
+        data: monthlyBalances,
+      });
+    }
+
+    // Get recent 5 transactions per account
+    const recentTransactions = [];
+    for (const account of bookAccounts) {
+      const accountTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.accountId, account.id))
+        .orderBy(sql`${transactions.transactionDate} DESC`)
+        .limit(5);
+
+      if (accountTransactions.length > 0) {
+        recentTransactions.push({
+          accountId: account.id,
+          accountName: account.name,
+          transactions: accountTransactions,
+        });
+      }
+    }
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        historicalBalances: historicalData,
+        recentTransactions,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard data',
     });
   }
 });

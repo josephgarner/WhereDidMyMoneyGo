@@ -1,6 +1,28 @@
 import { apiClient } from './client';
 import { AccountBook, Account, Transaction, ApiResponse, PaginationMeta } from '@finances/shared';
 
+export interface MonthlyBalance {
+  month: string;
+  balance: number;
+}
+
+export interface AccountHistoricalBalance {
+  accountId: string;
+  accountName: string;
+  data: MonthlyBalance[];
+}
+
+export interface AccountRecentTransactions {
+  accountId: string;
+  accountName: string;
+  transactions: Transaction[];
+}
+
+export interface DashboardData {
+  historicalBalances: AccountHistoricalBalance[];
+  recentTransactions: AccountRecentTransactions[];
+}
+
 export interface TransactionMetadata {
   minDate: string | null;
   maxDate: string | null;
@@ -43,6 +65,16 @@ export const accountBooksApi = {
   async getAllAccountBooks(): Promise<AccountBook[]> {
     const response = await apiClient.get<ApiResponse<AccountBook[]>>('/api/account-books');
     return response.data.data || [];
+  },
+
+  async getDashboardData(accountBookId: string): Promise<DashboardData> {
+    const response = await apiClient.get<ApiResponse<DashboardData>>(
+      `/api/account-books/${accountBookId}/dashboard-data`
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from dashboard');
+    }
+    return response.data.data;
   },
 
   async getAccountsByBookId(accountBookId: string): Promise<Account[]> {
