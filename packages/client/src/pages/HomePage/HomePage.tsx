@@ -13,7 +13,7 @@ import {
   CardHeader,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { useAccountBooks } from "../hooks";
+import { useAccountBooks } from "../../hooks";
 
 export function HomePage() {
   const navigate = useNavigate();

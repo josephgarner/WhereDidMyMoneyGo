@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, accounts, transactions } from '../db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql, gte, lte, and } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
 
@@ -9,8 +9,8 @@ const router = Router();
 // All routes require authentication
 router.use(requireAuth);
 
-// GET /api/accounts/:accountId/transactions - Get all transactions for a specific account
-router.get('/:accountId/transactions', async (req, res) => {
+// GET /api/accounts/:accountId/transactions/metadata - Get transaction date range metadata
+router.get('/:accountId/transactions/metadata', async (req, res) => {
   try {
     const { accountId } = req.params;
 
@@ -28,11 +28,84 @@ router.get('/:accountId/transactions', async (req, res) => {
       });
     }
 
+    // Get min and max transaction dates and distinct months
+    const result = await db
+      .select({
+        minDate: sql<string>`MIN(${transactions.transactionDate})`,
+        maxDate: sql<string>`MAX(${transactions.transactionDate})`,
+        months: sql<string[]>`ARRAY_AGG(DISTINCT TO_CHAR(${transactions.transactionDate}, 'YYYY-MM'))`,
+      })
+      .from(transactions)
+      .where(eq(transactions.accountId, accountId));
+
+    const metadata = result[0];
+
+    // Filter out null values and sort months
+    const availableMonths = metadata.months
+      ? metadata.months.filter(m => m !== null).sort((a, b) => b.localeCompare(a))
+      : [];
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        minDate: metadata.minDate,
+        maxDate: metadata.maxDate,
+        availableMonths,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching transaction metadata:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch transaction metadata',
+    });
+  }
+});
+
+// GET /api/accounts/:accountId/transactions - Get all transactions for a specific account
+router.get('/:accountId/transactions', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { startDate, endDate, month } = req.query;
+
+    // Verify account exists
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    // Build where conditions
+    const conditions = [eq(transactions.accountId, accountId)];
+
+    if (month && typeof month === 'string') {
+      // Filter by specific month (YYYY-MM)
+      const [year, monthNum] = month.split('-');
+      const startOfMonth = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const endOfMonth = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59);
+
+      conditions.push(gte(transactions.transactionDate, startOfMonth));
+      conditions.push(lte(transactions.transactionDate, endOfMonth));
+    } else if (startDate && endDate && typeof startDate === 'string' && typeof endDate === 'string') {
+      // Filter by date range
+      conditions.push(gte(transactions.transactionDate, new Date(startDate)));
+      conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
+    }
+
     // Get all transactions for this account, ordered by date (newest first)
     const accountTransactions = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.accountId, accountId))
+      .where(and(...conditions))
       .orderBy(desc(transactions.transactionDate));
 
     const response: ApiResponse = {

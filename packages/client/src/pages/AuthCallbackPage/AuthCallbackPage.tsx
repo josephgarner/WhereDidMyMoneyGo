@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Center, Spinner, Text, VStack } from '@chakra-ui/react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams();

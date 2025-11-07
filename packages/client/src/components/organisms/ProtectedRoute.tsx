@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { Box, Spinner, Center } from "@chakra-ui/react";
-import { Layout } from "../pages/Layout";
+import { useAuth } from "../../contexts/AuthContext";
+import { Spinner, Center } from "@chakra-ui/react";
+import { Layout } from "../templates";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

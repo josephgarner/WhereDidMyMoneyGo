@@ -13,7 +13,7 @@ import {
   StatNumber,
   StatHelpText,
 } from '@chakra-ui/react';
-import { useAccounts, useAccountBooks } from '../hooks';
+import { useAccounts, useAccountBooks } from '../../hooks';
 
 export function DashboardPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();

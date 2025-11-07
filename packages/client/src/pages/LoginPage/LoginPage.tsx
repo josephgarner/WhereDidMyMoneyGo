@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Container, Heading, VStack, Text } from '@chakra-ui/react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function LoginPage() {
   const { user, login } = useAuth();

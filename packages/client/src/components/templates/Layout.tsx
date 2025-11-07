@@ -1,5 +1,5 @@
 import { Box, Container } from "@chakra-ui/react";
-import { Nav } from "../components/Nav";
+import { Nav } from "../organisms";
 import { ReactNode } from "react";
 
 type PropsWithChildren<P> = P & { children?: ReactNode };

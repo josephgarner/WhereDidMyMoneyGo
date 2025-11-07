@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { FaKiwiBird, FaArrowLeft } from "react-icons/fa6";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function Nav() {
   const { user, logout } = useAuth();

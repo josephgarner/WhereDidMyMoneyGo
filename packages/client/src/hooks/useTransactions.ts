@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Transaction } from '@finances/shared';
-import { accountBooksApi } from '../api';
+import { accountBooksApi, TransactionFilters } from '../api';
 
-export function useTransactions(accountId: string | null) {
+export function useTransactions(accountId: string | null, filters?: TransactionFilters) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +17,10 @@ export function useTransactions(accountId: string | null) {
     async function fetchTransactions() {
       try {
         setLoading(true);
-        const fetchedTransactions = await accountBooksApi.getTransactionsByAccountId(accountId);
+        const fetchedTransactions = await accountBooksApi.getTransactionsByAccountId(
+          accountId,
+          filters
+        );
         setTransactions(fetchedTransactions);
         setError(null);
       } catch (err: any) {
@@ -29,7 +32,7 @@ export function useTransactions(accountId: string | null) {
     }
 
     fetchTransactions();
-  }, [accountId]);
+  }, [accountId, filters?.month, filters?.startDate, filters?.endDate]);
 
   return { transactions, loading, error };
 }
