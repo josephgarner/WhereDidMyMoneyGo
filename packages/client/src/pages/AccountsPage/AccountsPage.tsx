@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { useAccounts, useTransactions, useTransactionMetadata } from '../../hooks';
 import { TransactionDateFilter, DateFilterValue } from '../../components/organisms/TransactionDateFilter';
+import { Pagination } from '../../components/molecules';
 import { TransactionFilters } from '../../api';
 
 export function AccountsPage() {
@@ -28,21 +29,41 @@ export function AccountsPage() {
   const { accounts, loading: accountsLoading, error: accountsError } = useAccounts(accountBookId || null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({ type: 'all' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
 
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
 
+  // Reset to page 1 when account or date filter changes
+  const handleAccountChange = (accountId: string) => {
+    setSelectedAccountId(accountId);
+    setCurrentPage(1);
+  };
+
+  const handleDateFilterChange = (newFilter: DateFilterValue) => {
+    setDateFilter(newFilter);
+    setCurrentPage(1);
+  };
+
   // Build filters for the transactions query
   const transactionFilters: TransactionFilters | undefined = useMemo(() => {
-    if (dateFilter.type === 'month' && dateFilter.month) {
-      return { month: dateFilter.month };
-    } else if (dateFilter.type === 'range' && dateFilter.startDate && dateFilter.endDate) {
-      return { startDate: dateFilter.startDate, endDate: dateFilter.endDate };
-    }
-    return undefined;
-  }, [dateFilter]);
+    const filters: TransactionFilters = {
+      page: currentPage,
+      limit: pageSize,
+    };
 
-  const { transactions, loading: transactionsLoading, error: transactionsError } = useTransactions(
+    if (dateFilter.type === 'month' && dateFilter.month) {
+      filters.month = dateFilter.month;
+    } else if (dateFilter.type === 'range' && dateFilter.startDate && dateFilter.endDate) {
+      filters.startDate = dateFilter.startDate;
+      filters.endDate = dateFilter.endDate;
+    }
+
+    return filters;
+  }, [dateFilter, currentPage, pageSize]);
+
+  const { transactions, pagination, loading: transactionsLoading, error: transactionsError } = useTransactions(
     selectedAccountId,
     transactionFilters
   );
@@ -92,7 +113,7 @@ export function AccountsPage() {
                   bg={selectedAccountId === account.id ? 'teal.900' : undefined}
                   borderColor={selectedAccountId === account.id ? 'teal.500' : 'navy.700'}
                   borderWidth="2px"
-                  onClick={() => setSelectedAccountId(account.id)}
+                  onClick={() => handleAccountChange(account.id)}
                   _hover={{
                     borderColor: 'teal.600',
                     transform: 'translateY(-2px)',
@@ -125,7 +146,7 @@ export function AccountsPage() {
                   minDate={minDate}
                   maxDate={maxDate}
                   value={dateFilter}
-                  onChange={setDateFilter}
+                  onChange={handleDateFilterChange}
                 />
               )}
 
@@ -208,6 +229,20 @@ export function AccountsPage() {
                             </Tbody>
                           </Table>
                         </TableContainer>
+                      )}
+
+                      {pagination && pagination.totalPages > 1 && (
+                        <Pagination
+                          currentPage={pagination.page}
+                          totalPages={pagination.totalPages}
+                          totalCount={pagination.totalCount}
+                          pageSize={pagination.limit}
+                          onPageChange={setCurrentPage}
+                          onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                          }}
+                        />
                       )}
                     </VStack>
                   )}

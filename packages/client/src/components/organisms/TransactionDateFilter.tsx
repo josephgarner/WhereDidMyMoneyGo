@@ -116,9 +116,21 @@ export function TransactionDateFilter({
               borderColor="navy.700"
               color="cream.100"
               _hover={{ borderColor: 'teal.500' }}
+              sx={{
+                option: {
+                  bg: 'navy.900',
+                  color: 'cream.100',
+                  _hover: {
+                    bg: 'teal.700',
+                  },
+                  _checked: {
+                    bg: 'teal.800',
+                  },
+                }
+              }}
             >
               {sortedMonths.map((month) => (
-                <option key={month} value={month}>
+                <option key={month} value={month} style={{ backgroundColor: '#1a2332', color: '#f5f3e7' }}>
                   {formatMonthDisplay(month)}
                 </option>
               ))}

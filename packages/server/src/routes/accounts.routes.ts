@@ -64,11 +64,16 @@ router.get('/:accountId/transactions/metadata', async (req, res) => {
   }
 });
 
-// GET /api/accounts/:accountId/transactions - Get all transactions for a specific account
+// GET /api/accounts/:accountId/transactions - Get all transactions for a specific account with pagination
 router.get('/:accountId/transactions', async (req, res) => {
   try {
     const { accountId } = req.params;
-    const { startDate, endDate, month } = req.query;
+    const { startDate, endDate, month, page = '1', limit = '30' } = req.query;
+
+    // Parse pagination params
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const offset = (pageNum - 1) * limitNum;
 
     // Verify account exists
     const account = await db
@@ -101,16 +106,33 @@ router.get('/:accountId/transactions', async (req, res) => {
       conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
     }
 
-    // Get all transactions for this account, ordered by date (newest first)
+    // Get total count for pagination
+    const countResult = await db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(transactions)
+      .where(and(...conditions));
+
+    const totalCount = countResult[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    // Get paginated transactions for this account, ordered by date (newest first)
     const accountTransactions = await db
       .select()
       .from(transactions)
       .where(and(...conditions))
-      .orderBy(desc(transactions.transactionDate));
+      .orderBy(desc(transactions.transactionDate))
+      .limit(limitNum)
+      .offset(offset);
 
     const response: ApiResponse = {
       success: true,
       data: accountTransactions,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalCount,
+        totalPages,
+      },
     };
 
     res.json(response);

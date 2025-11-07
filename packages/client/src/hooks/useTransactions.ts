@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Transaction } from '@finances/shared';
+import { Transaction, PaginationMeta } from '@finances/shared';
 import { accountBooksApi, TransactionFilters } from '../api';
 
 export function useTransactions(accountId: string | null, filters?: TransactionFilters) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accountId) {
       setTransactions([]);
+      setPagination(null);
       setLoading(false);
       return;
     }
@@ -17,11 +19,12 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
     async function fetchTransactions() {
       try {
         setLoading(true);
-        const fetchedTransactions = await accountBooksApi.getTransactionsByAccountId(
+        const result = await accountBooksApi.getTransactionsByAccountId(
           accountId,
           filters
         );
-        setTransactions(fetchedTransactions);
+        setTransactions(result.transactions);
+        setPagination(result.pagination);
         setError(null);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch transactions');
@@ -32,7 +35,7 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
     }
 
     fetchTransactions();
-  }, [accountId, filters?.month, filters?.startDate, filters?.endDate]);
+  }, [accountId, filters?.month, filters?.startDate, filters?.endDate, filters?.page, filters?.limit]);
 
-  return { transactions, loading, error };
+  return { transactions, pagination, loading, error };
 }

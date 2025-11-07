@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { AccountBook, Account, Transaction, ApiResponse } from '@finances/shared';
+import { AccountBook, Account, Transaction, ApiResponse, PaginationMeta } from '@finances/shared';
 
 export interface TransactionMetadata {
   minDate: string | null;
@@ -11,6 +11,13 @@ export interface TransactionFilters {
   month?: string; // YYYY-MM
   startDate?: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
+  page?: number;
+  limit?: number;
+}
+
+export interface TransactionsResult {
+  transactions: Transaction[];
+  pagination: PaginationMeta | null;
 }
 
 export const accountBooksApi = {
@@ -36,7 +43,7 @@ export const accountBooksApi = {
   async getTransactionsByAccountId(
     accountId: string,
     filters?: TransactionFilters
-  ): Promise<Transaction[]> {
+  ): Promise<TransactionsResult> {
     const params = new URLSearchParams();
 
     if (filters?.month) {
@@ -46,10 +53,21 @@ export const accountBooksApi = {
       params.append('endDate', filters.endDate);
     }
 
+    if (filters?.page) {
+      params.append('page', filters.page.toString());
+    }
+
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+
     const queryString = params.toString();
     const url = `/api/accounts/${accountId}/transactions${queryString ? `?${queryString}` : ''}`;
 
     const response = await apiClient.get<ApiResponse<Transaction[]>>(url);
-    return response.data.data || [];
+    return {
+      transactions: response.data.data || [],
+      pagination: response.data.pagination || null,
+    };
   },
 };

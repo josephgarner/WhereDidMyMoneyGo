@@ -1,8 +1,16 @@
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
+  pagination?: PaginationMeta;
 }
 
 export interface PaginatedResponse<T> {
