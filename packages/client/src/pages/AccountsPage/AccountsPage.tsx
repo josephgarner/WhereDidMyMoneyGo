@@ -28,6 +28,8 @@ import {
   TransactionDateFilter,
   DateFilterValue,
   AddTransactionForm,
+  UploadQIFForm,
+  AddAccountForm,
 } from "../../components/organisms";
 import { Pagination } from "../../components/molecules";
 import { TransactionFilters } from "../../api";
@@ -38,6 +40,7 @@ export function AccountsPage() {
     accounts,
     loading: accountsLoading,
     error: accountsError,
+    refetch: refetchAccounts,
   } = useAccounts(accountBookId || null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null
@@ -91,9 +94,15 @@ export function AccountsPage() {
     refetch,
   } = useTransactions(selectedAccountId, transactionFilters);
 
-  // Function to refresh transactions after adding a new one
+  // Function to refresh transactions and accounts after adding a transaction
   const handleTransactionAdded = () => {
-    refetch();
+    refetch(); // Refresh transactions list
+    refetchAccounts(); // Refresh accounts list to update balance
+  };
+
+  // Function to refresh accounts after adding a new one
+  const handleAccountAdded = () => {
+    refetchAccounts();
   };
 
   if (accountsLoading) {
@@ -129,19 +138,26 @@ export function AccountsPage() {
         Accounts
       </Heading>
 
-      {accounts.length === 0 ? (
-        <Card>
-          <CardBody>
-            <Text color="cream.300">
-              No accounts found for this account book.
-            </Text>
-          </CardBody>
-        </Card>
-      ) : (
-        <Grid templateColumns={{ base: "1fr", lg: "350px 1fr" }} gap={2}>
-          <GridItem>
-            <VStack spacing={2} align="stretch">
-              {accounts.map((account) => (
+      <Grid templateColumns={{ base: "1fr", lg: "350px 1fr" }} gap={2}>
+        <GridItem>
+          <VStack spacing={2} align="stretch">
+            {accountBookId && (
+              <AddAccountForm
+                accountBookId={accountBookId}
+                onSuccess={handleAccountAdded}
+              />
+            )}
+
+            {accounts.length === 0 ? (
+              <Card>
+                <CardBody>
+                  <Text color="cream.300" textAlign="center">
+                    No accounts yet. Create one above to get started.
+                  </Text>
+                </CardBody>
+              </Card>
+            ) : (
+              accounts.map((account) => (
                 <Card
                   key={account.id}
                   cursor="pointer"
@@ -171,19 +187,27 @@ export function AccountsPage() {
                     </VStack>
                   </CardBody>
                 </Card>
-              ))}
-            </VStack>
-          </GridItem>
+              ))
+            )}
+          </VStack>
+        </GridItem>
 
           <GridItem>
             <VStack spacing={2} align="stretch">
               {selectedAccountId && (
                 <Grid
-                  templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
+                  templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }}
                   gap={2}
                 >
                   <GridItem>
                     <AddTransactionForm
+                      accountId={selectedAccountId}
+                      onSuccess={handleTransactionAdded}
+                    />
+                  </GridItem>
+
+                  <GridItem>
+                    <UploadQIFForm
                       accountId={selectedAccountId}
                       onSuccess={handleTransactionAdded}
                     />
@@ -380,7 +404,6 @@ export function AccountsPage() {
             </VStack>
           </GridItem>
         </Grid>
-      )}
     </VStack>
   );
 }

@@ -3,8 +3,27 @@ import { db, accounts, transactions } from '../db';
 import { eq, desc, sql, gte, lte, and } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
+import multer from 'multer';
+import { parseQIFFile } from '../utils/qifParser';
+import { updateAccountBalance } from '../utils/accountBalances';
 
 const router = Router();
+
+// Configure multer for file uploads (store in memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only .qif files
+    if (file.originalname.toLowerCase().endsWith('.qif')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .qif files are allowed'));
+    }
+  },
+});
 
 // All routes require authentication
 router.use(requireAuth);
@@ -243,6 +262,9 @@ router.post('/:accountId/transactions', async (req, res) => {
       })
       .returning();
 
+    // Update account balance after adding transaction
+    await updateAccountBalance(accountId);
+
     const response: ApiResponse = {
       success: true,
       data: newTransaction[0],
@@ -254,6 +276,103 @@ router.post('/:accountId/transactions', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create transaction',
+    });
+  }
+});
+
+// POST /api/accounts/:accountId/transactions/upload-qif - Upload and import transactions from QIF file
+router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), async (req, res) => {
+  try {
+    const { accountId } = req.params;
+
+    // Verify account exists and get account book ID
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
+
+    // Parse the QIF file
+    const fileContent = req.file.buffer.toString('utf-8');
+    const parseResult = parseQIFFile(fileContent);
+
+    // If there are parse errors and no transactions, return error
+    if (parseResult.transactions.length === 0 && parseResult.errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to parse QIF file',
+        details: parseResult.errors,
+      });
+    }
+
+    // Insert all valid transactions
+    const insertedTransactions = [];
+    const insertErrors: string[] = [];
+
+    for (const transaction of parseResult.transactions) {
+      try {
+        const newTransaction = await db
+          .insert(transactions)
+          .values({
+            accountId,
+            accountBookId: account[0].accountBookId,
+            transactionDate: transaction.transactionDate,
+            description: transaction.description,
+            category: transaction.category,
+            subCategory: transaction.subCategory || '',
+            debitAmount: transaction.debitAmount,
+            creditAmount: transaction.creditAmount,
+          })
+          .returning();
+
+        insertedTransactions.push(newTransaction[0]);
+      } catch (error: any) {
+        insertErrors.push(`Failed to insert transaction "${transaction.description}": ${error.message}`);
+      }
+    }
+
+    // Update account balance after importing all transactions
+    if (insertedTransactions.length > 0) {
+      await updateAccountBalance(accountId);
+    }
+
+    // Return results
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        imported: insertedTransactions.length,
+        failed: insertErrors.length,
+        parseErrors: parseResult.errors.length,
+        transactions: insertedTransactions,
+      },
+    };
+
+    // Include errors in response if there were any
+    if (insertErrors.length > 0 || parseResult.errors.length > 0) {
+      response.data.errors = [...parseResult.errors, ...insertErrors];
+    }
+
+    res.status(201).json(response);
+  } catch (error: any) {
+    console.error('Error uploading QIF file:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload QIF file',
     });
   }
 });

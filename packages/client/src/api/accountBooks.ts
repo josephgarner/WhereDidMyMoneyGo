@@ -34,6 +34,11 @@ export interface CreateTransactionData {
   creditAmount?: string;
 }
 
+export interface CreateAccountData {
+  name: string;
+  startingBalance?: string;
+}
+
 export const accountBooksApi = {
   async getAllAccountBooks(): Promise<AccountBook[]> {
     const response = await apiClient.get<ApiResponse<AccountBook[]>>('/api/account-books');
@@ -45,6 +50,20 @@ export const accountBooksApi = {
       `/api/account-books/${accountBookId}/accounts`
     );
     return response.data.data || [];
+  },
+
+  async createAccount(
+    accountBookId: string,
+    data: CreateAccountData
+  ): Promise<Account> {
+    const response = await apiClient.post<ApiResponse<Account>>(
+      `/api/account-books/${accountBookId}/accounts`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from create account');
+    }
+    return response.data.data;
   },
 
   async getTransactionMetadata(accountId: string): Promise<TransactionMetadata> {
@@ -101,5 +120,34 @@ export const accountBooksApi = {
       data
     );
     return response.data.data as Transaction;
+  },
+
+  async uploadQIFFile(accountId: string, file: File): Promise<{
+    imported: number;
+    failed: number;
+    parseErrors: number;
+    errors?: string[];
+  }> {
+    const formData = new FormData();
+    formData.append('qifFile', file);
+
+    const response = await apiClient.post<ApiResponse<{
+      imported: number;
+      failed: number;
+      parseErrors: number;
+      errors?: string[];
+    }>>(
+      `/api/accounts/${accountId}/transactions/upload-qif`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from upload');
+    }
+    return response.data.data;
   },
 };

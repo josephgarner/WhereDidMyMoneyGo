@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Account } from '@finances/shared';
 import { accountBooksApi } from '../api';
 
@@ -6,6 +6,11 @@ export function useAccounts(accountBookId: string | null) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!accountBookId) {
@@ -29,7 +34,7 @@ export function useAccounts(accountBookId: string | null) {
     }
 
     fetchAccounts();
-  }, [accountBookId]);
+  }, [accountBookId, refreshKey]);
 
-  return { accounts, loading, error };
+  return { accounts, loading, error, refetch };
 }

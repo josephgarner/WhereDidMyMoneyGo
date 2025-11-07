@@ -4,3 +4,7 @@ export { TransactionDateFilter } from './TransactionDateFilter';
 export type { DateFilterValue } from './TransactionDateFilter';
 export { AddTransactionForm } from './AddTransactionForm';
 export type { AddTransactionFormProps } from './AddTransactionForm';
+export { UploadQIFForm } from './UploadQIFForm';
+export type { UploadQIFFormProps } from './UploadQIFForm';
+export { AddAccountForm } from './AddAccountForm';
+export type { AddAccountFormProps } from './AddAccountForm';

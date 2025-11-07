@@ -1,0 +1,26 @@
+!Type:Bank
+D01/15/2024
+T-150.50
+PGrocery Store
+LFood:Groceries
+^
+D01/16/2024
+T-45.00
+PGas Station
+LTransportation:Fuel
+^
+D01/17/2024
+T2500.00
+PSalary Deposit
+LIncome:Salary
+^
+D01/18/2024
+T-89.99
+PAmazon Purchase
+LShopping:Online
+^
+D01/19/2024
+T-32.50
+PRestaurant
+LFood:Dining Out
+^

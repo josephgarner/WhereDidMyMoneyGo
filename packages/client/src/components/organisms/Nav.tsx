@@ -18,12 +18,14 @@ export function Nav() {
   const location = useLocation();
 
   // Extract accountBookId from the URL if we're on an account book page
-  const accountBookIdMatch = location.pathname.match(/\/account-books\/([^/]+)/);
+  const accountBookIdMatch = location.pathname.match(
+    /\/account-books\/([^/]+)/
+  );
   const accountBookId = accountBookIdMatch ? accountBookIdMatch[1] : null;
 
   const showBackButton = accountBookId !== null;
-  const isDashboard = location.pathname.endsWith('/dashboard');
-  const isAccountsPage = location.pathname.endsWith('/accounts');
+  const isDashboard = location.pathname.endsWith("/dashboard");
+  const isAccountsPage = location.pathname.endsWith("/accounts");
 
   return (
     <Box bg="navy.800" borderBottom="1px" borderColor="navy.700" py={4}>
@@ -37,11 +39,11 @@ export function Nav() {
                 size="sm"
                 variant="ghost"
                 colorScheme="teal"
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
               />
             )}
             <Heading size="md" color="cream.100">
-              Finance Manager
+              WDMMG
             </Heading>
             {accountBookId && (
               <HStack spacing={2} ml={8}>
@@ -49,7 +51,9 @@ export function Nav() {
                   size="sm"
                   variant={isDashboard ? "solid" : "ghost"}
                   colorScheme="teal"
-                  onClick={() => navigate(`/account-books/${accountBookId}/dashboard`)}
+                  onClick={() =>
+                    navigate(`/account-books/${accountBookId}/dashboard`)
+                  }
                 >
                   Dashboard
                 </Button>
@@ -57,7 +61,9 @@ export function Nav() {
                   size="sm"
                   variant={isAccountsPage ? "solid" : "ghost"}
                   colorScheme="teal"
-                  onClick={() => navigate(`/account-books/${accountBookId}/accounts`)}
+                  onClick={() =>
+                    navigate(`/account-books/${accountBookId}/accounts`)
+                  }
                 >
                   Accounts
                 </Button>
