@@ -18,7 +18,19 @@ import {
   Td,
   TableContainer,
   Badge,
+  IconButton,
+  useToast,
+  HStack,
+  Button,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
+import { FaTrash } from "react-icons/fa6";
 import {
   useAccounts,
   useTransactions,
@@ -32,10 +44,14 @@ import {
   AddAccountForm,
 } from "../../components/organisms";
 import { Pagination } from "../../components/molecules";
-import { TransactionFilters } from "../../api";
+import { TransactionFilters, accountBooksApi } from "../../api";
+import { useRef } from "react";
 
 export function AccountsPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
+  const toast = useToast();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   const {
     accounts,
     loading: accountsLoading,
@@ -50,6 +66,13 @@ export function AccountsPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  // Delete dialog state
+  const { isOpen: isDeleteAccountOpen, onOpen: onDeleteAccountOpen, onClose: onDeleteAccountClose } = useDisclosure();
+  const { isOpen: isDeleteTransactionOpen, onOpen: onDeleteTransactionOpen, onClose: onDeleteTransactionClose } = useDisclosure();
+  const { isOpen: isDeleteMonthOpen, onOpen: onDeleteMonthOpen, onClose: onDeleteMonthClose } = useDisclosure();
+  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
 
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
@@ -103,6 +126,104 @@ export function AccountsPage() {
   // Function to refresh accounts after adding a new one
   const handleAccountAdded = () => {
     refetchAccounts();
+  };
+
+  // Delete account handlers
+  const handleDeleteAccountClick = (accountId: string) => {
+    setAccountToDelete(accountId);
+    onDeleteAccountOpen();
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    if (!accountBookId || !accountToDelete) return;
+
+    try {
+      await accountBooksApi.deleteAccount(accountBookId, accountToDelete);
+      toast({
+        title: 'Account Deleted',
+        description: 'The account and all its transactions have been deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Clear selection if deleted account was selected
+      if (selectedAccountId === accountToDelete) {
+        setSelectedAccountId(null);
+      }
+
+      refetchAccounts();
+      onDeleteAccountClose();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete account',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Delete transaction handlers
+  const handleDeleteTransactionClick = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    onDeleteTransactionOpen();
+  };
+
+  const handleDeleteTransactionConfirm = async () => {
+    if (!selectedAccountId || !transactionToDelete) return;
+
+    try {
+      await accountBooksApi.deleteTransaction(selectedAccountId, transactionToDelete);
+      toast({
+        title: 'Transaction Deleted',
+        description: 'The transaction has been deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      refetch();
+      refetchAccounts();
+      onDeleteTransactionClose();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete transaction',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Delete transactions by month handler
+  const handleDeleteMonthConfirm = async () => {
+    if (!selectedAccountId || dateFilter.type !== 'month' || !dateFilter.month) return;
+
+    try {
+      const result = await accountBooksApi.deleteTransactionsByMonth(selectedAccountId, dateFilter.month);
+      toast({
+        title: 'Transactions Deleted',
+        description: `Deleted ${result.deletedCount} transaction(s) for ${dateFilter.month}`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      refetch();
+      refetchAccounts();
+      onDeleteMonthClose();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete transactions',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   if (accountsLoading) {
@@ -174,10 +295,23 @@ export function AccountsPage() {
                   }}
                 >
                   <CardBody>
-                    <VStack align="start" spacing={2}>
+                    <HStack justify="space-between" align="start" mb={2}>
                       <Heading size="sm" color="cream.100">
                         {account.name}
                       </Heading>
+                      <IconButton
+                        aria-label="Delete account"
+                        icon={<FaTrash />}
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAccountClick(account.id);
+                        }}
+                      />
+                    </HStack>
+                    <VStack align="start" spacing={2}>
                       <Text color="cream.300" fontSize="xs">
                         Balance
                       </Text>
@@ -215,13 +349,26 @@ export function AccountsPage() {
 
                   {selectedAccountId && metadata.availableMonths.length > 0 && (
                     <GridItem>
-                      <TransactionDateFilter
-                        availableMonths={metadata.availableMonths}
-                        minDate={minDate}
-                        maxDate={maxDate}
-                        value={dateFilter}
-                        onChange={handleDateFilterChange}
-                      />
+                      <VStack align="stretch" spacing={2}>
+                        <TransactionDateFilter
+                          availableMonths={metadata.availableMonths}
+                          minDate={minDate}
+                          maxDate={maxDate}
+                          value={dateFilter}
+                          onChange={handleDateFilterChange}
+                        />
+                        {dateFilter.type === 'month' && dateFilter.month && (
+                          <Button
+                            size="sm"
+                            colorScheme="red"
+                            variant="outline"
+                            leftIcon={<FaTrash />}
+                            onClick={onDeleteMonthOpen}
+                          >
+                            Delete Month Transactions
+                          </Button>
+                        )}
+                      </VStack>
                     </GridItem>
                   )}
                 </Grid>
@@ -313,6 +460,7 @@ export function AccountsPage() {
                                   <Th color="cream.300" width="100px" isNumeric>
                                     Credit
                                   </Th>
+                                  <Th color="cream.300" width="50px"></Th>
                                 </Tr>
                               </Thead>
                               <Tbody>
@@ -376,6 +524,16 @@ export function AccountsPage() {
                                           ).toFixed(2)}`
                                         : "-"}
                                     </Td>
+                                    <Td width="50px">
+                                      <IconButton
+                                        aria-label="Delete transaction"
+                                        icon={<FaTrash />}
+                                        size="xs"
+                                        variant="ghost"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteTransactionClick(transaction.id)}
+                                      />
+                                    </Td>
                                   </Tr>
                                 ))}
                               </Tbody>
@@ -404,6 +562,90 @@ export function AccountsPage() {
             </VStack>
           </GridItem>
         </Grid>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteAccountOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteAccountClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="navy.800" borderColor="navy.700">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+              Delete Account
+            </AlertDialogHeader>
+
+            <AlertDialogBody color="cream.300">
+              Are you sure? This will permanently delete the account and all its transactions. This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteAccountClose} variant="outline" colorScheme="gray">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDeleteAccountConfirm} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Delete Transaction Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteTransactionOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteTransactionClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="navy.800" borderColor="navy.700">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+              Delete Transaction
+            </AlertDialogHeader>
+
+            <AlertDialogBody color="cream.300">
+              Are you sure? This will permanently delete this transaction. This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteTransactionClose} variant="outline" colorScheme="gray">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDeleteTransactionConfirm} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Delete Month Transactions Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteMonthOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteMonthClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="navy.800" borderColor="navy.700">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+              Delete Month Transactions
+            </AlertDialogHeader>
+
+            <AlertDialogBody color="cream.300">
+              Are you sure? This will permanently delete all transactions for {dateFilter.type === 'month' ? dateFilter.month : 'this month'}. This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteMonthClose} variant="outline" colorScheme="gray">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDeleteMonthConfirm} ml={3}>
+                Delete All
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </VStack>
   );
 }

@@ -70,6 +70,50 @@ router.get('/:id/accounts', async (req, res) => {
   }
 });
 
+// DELETE /api/account-books/:id/accounts/:accountId - Delete an account
+router.delete('/:id/accounts/:accountId', async (req, res) => {
+  try {
+    const { id, accountId } = req.params;
+
+    // Verify account exists and belongs to this account book
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    if (account[0].accountBookId !== id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Account does not belong to this account book',
+      });
+    }
+
+    // Delete the account (cascade will delete associated transactions)
+    await db.delete(accounts).where(eq(accounts.id, accountId));
+
+    const response: ApiResponse = {
+      success: true,
+      data: { message: 'Account deleted successfully' },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete account',
+    });
+  }
+});
+
 // POST /api/account-books/:id/accounts - Create a new account for a specific account book
 router.post('/:id/accounts', async (req, res) => {
   try {

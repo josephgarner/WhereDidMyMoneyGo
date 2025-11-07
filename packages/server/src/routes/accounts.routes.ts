@@ -377,4 +377,116 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
   }
 });
 
+// DELETE /api/accounts/:accountId/transactions/:transactionId - Delete a single transaction
+router.delete('/:accountId/transactions/:transactionId', async (req, res) => {
+  try {
+    const { accountId, transactionId } = req.params;
+
+    // Verify transaction exists and belongs to this account
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, transactionId))
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found',
+      });
+    }
+
+    if (transaction[0].accountId !== accountId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Transaction does not belong to this account',
+      });
+    }
+
+    // Delete the transaction
+    await db.delete(transactions).where(eq(transactions.id, transactionId));
+
+    // Update account balance after deleting transaction
+    await updateAccountBalance(accountId);
+
+    const response: ApiResponse = {
+      success: true,
+      data: { message: 'Transaction deleted successfully' },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete transaction',
+    });
+  }
+});
+
+// DELETE /api/accounts/:accountId/transactions/bulk/by-month - Delete all transactions for a specific month
+router.delete('/:accountId/transactions/bulk/by-month', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { month } = req.query; // Format: YYYY-MM
+
+    if (!month || typeof month !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Month parameter is required (format: YYYY-MM)',
+      });
+    }
+
+    // Verify account exists
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    // Calculate month range
+    const [year, monthNum] = month.split('-');
+    const startOfMonth = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+    const endOfMonth = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59);
+
+    // Delete all transactions in this month for this account
+    const result = await db
+      .delete(transactions)
+      .where(
+        and(
+          eq(transactions.accountId, accountId),
+          gte(transactions.transactionDate, startOfMonth),
+          lte(transactions.transactionDate, endOfMonth)
+        )
+      )
+      .returning();
+
+    // Update account balance after deleting transactions
+    await updateAccountBalance(accountId);
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        message: `Deleted ${result.length} transaction(s) for ${month}`,
+        deletedCount: result.length,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error deleting transactions by month:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete transactions',
+    });
+  }
+});
+
 export default router;

@@ -98,6 +98,10 @@ export const accountBooksApi = {
     return response.data.data;
   },
 
+  async deleteAccount(accountBookId: string, accountId: string): Promise<void> {
+    await apiClient.delete(`/api/account-books/${accountBookId}/accounts/${accountId}`);
+  },
+
   async getTransactionMetadata(accountId: string): Promise<TransactionMetadata> {
     const response = await apiClient.get<ApiResponse<TransactionMetadata>>(
       `/api/accounts/${accountId}/transactions/metadata`
@@ -179,6 +183,20 @@ export const accountBooksApi = {
     );
     if (!response.data.data) {
       throw new Error('No data returned from upload');
+    }
+    return response.data.data;
+  },
+
+  async deleteTransaction(accountId: string, transactionId: string): Promise<void> {
+    await apiClient.delete(`/api/accounts/${accountId}/transactions/${transactionId}`);
+  },
+
+  async deleteTransactionsByMonth(accountId: string, month: string): Promise<{ deletedCount: number }> {
+    const response = await apiClient.delete<ApiResponse<{ deletedCount: number }>>(
+      `/api/accounts/${accountId}/transactions/bulk/by-month?month=${month}`
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from delete');
     }
     return response.data.data;
   },
