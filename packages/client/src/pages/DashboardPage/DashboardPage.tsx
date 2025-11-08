@@ -21,7 +21,7 @@ import {
 import { ResponsiveLine } from '@nivo/line';
 import { useAccountBooks, useAccounts, useLocalStorage } from '../../hooks';
 import { accountBooksApi, DashboardData } from '../../api';
-import { AccountBalanceChart } from '../../components/organisms';
+import { AccountBalanceChart, MonthlyDebitCreditChart } from '../../components/organisms';
 
 export function DashboardPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
@@ -191,6 +191,30 @@ export function DashboardPage() {
           selectedAccountId={selectedAccountId}
           onAccountChange={setSelectedAccountId}
         />
+      )}
+
+      {/* Monthly Debit/Credit Charts */}
+      <Heading size="md" color="cream.100" mt={4}>
+        Monthly Debits & Credits (Last 6 Months)
+      </Heading>
+
+      {dashboardData.monthlyDebitCredit.length === 0 ? (
+        <Card>
+          <CardBody>
+            <Text color="cream.400" textAlign="center">
+              No monthly debit/credit data available
+            </Text>
+          </CardBody>
+        </Card>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={4}>
+          {dashboardData.monthlyDebitCredit.map((accountData) => (
+            <MonthlyDebitCreditChart
+              key={accountData.accountId}
+              accountData={accountData}
+            />
+          ))}
+        </SimpleGrid>
       )}
 
       {/* Recent Transactions by Account */}

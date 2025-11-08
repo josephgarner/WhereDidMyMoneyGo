@@ -16,3 +16,5 @@ export { EditRuleModal } from './EditRuleModal';
 export type { EditRuleModalProps } from './EditRuleModal';
 export { AccountBalanceChart } from './AccountBalanceChart';
 export type { AccountBalanceChartProps } from './AccountBalanceChart';
+export { MonthlyDebitCreditChart } from './MonthlyDebitCreditChart';
+export type { MonthlyDebitCreditChartProps } from './MonthlyDebitCreditChart';

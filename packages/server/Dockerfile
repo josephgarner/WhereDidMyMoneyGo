@@ -43,6 +43,7 @@ COPY --from=builder /app/packages/server/dist ./packages/server/dist
 
 WORKDIR /app/packages/server
 
-EXPOSE 3001
+EXPOSE 3000
 
-CMD ["npm", "start"]
+# Run database migrations and start the server
+CMD ["sh", "-c", "npm run db:push && npm start"]

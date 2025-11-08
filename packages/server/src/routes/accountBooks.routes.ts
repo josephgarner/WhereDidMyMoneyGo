@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, accountBooks, accounts, transactions } from '../db';
-import { eq, sql, and, lte } from 'drizzle-orm';
+import { eq, sql, and, lte, gte } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
 import { updateAccountBalance } from '../utils/accountBalances';
@@ -304,19 +304,23 @@ router.get('/:id/dashboard-data', async (req, res) => {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    // Build historical balance data for each account
+    // Build historical balance data and monthly debit/credit data for each account
     const historicalData = [];
+    const monthlyDebitCreditData = [];
+
     for (const account of bookAccounts) {
       const monthlyBalances = [];
+      const monthlyDebitCredit = [];
 
       // For each of the last 6 months
       for (let i = 5; i >= 0; i--) {
         const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
         const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
 
-        // Calculate balance up to end of this month
-        const result = await db
+        // Calculate cumulative balance up to end of this month
+        const cumulativeResult = await db
           .select({
             totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
             totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
@@ -329,13 +333,37 @@ router.get('/:id/dashboard-data', async (req, res) => {
             )
           );
 
-        const totalDebits = parseFloat(result[0].totalDebits || '0');
-        const totalCredits = parseFloat(result[0].totalCredits || '0');
+        const totalDebits = parseFloat(cumulativeResult[0].totalDebits || '0');
+        const totalCredits = parseFloat(cumulativeResult[0].totalCredits || '0');
         const balance = totalCredits - totalDebits;
 
         monthlyBalances.push({
           month: monthKey,
           balance: parseFloat(balance.toFixed(2)),
+        });
+
+        // Calculate monthly debit/credit amounts (for this month only)
+        const monthlyResult = await db
+          .select({
+            monthlyDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
+            monthlyCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.accountId, account.id),
+              gte(transactions.transactionDate, monthStart),
+              lte(transactions.transactionDate, monthEnd)
+            )
+          );
+
+        const monthlyDebits = parseFloat(monthlyResult[0].monthlyDebits || '0');
+        const monthlyCredits = parseFloat(monthlyResult[0].monthlyCredits || '0');
+
+        monthlyDebitCredit.push({
+          month: monthKey,
+          debits: parseFloat(monthlyDebits.toFixed(2)),
+          credits: parseFloat(monthlyCredits.toFixed(2)),
         });
       }
 
@@ -343,6 +371,12 @@ router.get('/:id/dashboard-data', async (req, res) => {
         accountId: account.id,
         accountName: account.name,
         data: monthlyBalances,
+      });
+
+      monthlyDebitCreditData.push({
+        accountId: account.id,
+        accountName: account.name,
+        data: monthlyDebitCredit,
       });
     }
 
@@ -369,6 +403,7 @@ router.get('/:id/dashboard-data', async (req, res) => {
       success: true,
       data: {
         historicalBalances: historicalData,
+        monthlyDebitCredit: monthlyDebitCreditData,
         recentTransactions,
       },
     };

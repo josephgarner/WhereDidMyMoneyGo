@@ -24,8 +24,21 @@ export interface AccountRecentTransactions {
   transactions: Transaction[];
 }
 
+export interface MonthlyDebitCredit {
+  month: string;
+  debits: number;
+  credits: number;
+}
+
+export interface AccountMonthlyDebitCredit {
+  accountId: string;
+  accountName: string;
+  data: MonthlyDebitCredit[];
+}
+
 export interface DashboardData {
   historicalBalances: AccountHistoricalBalance[];
+  monthlyDebitCredit: AccountMonthlyDebitCredit[];
   recentTransactions: AccountRecentTransactions[];
 }
 
