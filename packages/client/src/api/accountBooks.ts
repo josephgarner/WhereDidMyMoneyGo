@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { AccountBook, Account, Transaction, ApiResponse, PaginationMeta } from '@finances/shared';
+import { AccountBook, Account, Transaction, CategoryRule, ApiResponse, PaginationMeta } from '@finances/shared';
 
 export interface MonthlyBalance {
   month: string;
@@ -59,6 +59,12 @@ export interface CreateTransactionData {
 export interface CreateAccountData {
   name: string;
   startingBalance?: string;
+}
+
+export interface CreateRuleData {
+  keyword: string;
+  category: string;
+  subCategory?: string;
 }
 
 export const accountBooksApi = {
@@ -211,5 +217,43 @@ export const accountBooksApi = {
       throw new Error('No data returned from delete');
     }
     return response.data.data;
+  },
+
+  // Category Rules API
+  async getRules(accountBookId: string): Promise<CategoryRule[]> {
+    const response = await apiClient.get<ApiResponse<CategoryRule[]>>(
+      `/api/account-books/${accountBookId}/rules`
+    );
+    return response.data.data || [];
+  },
+
+  async createRule(accountBookId: string, data: CreateRuleData): Promise<CategoryRule> {
+    const response = await apiClient.post<ApiResponse<CategoryRule>>(
+      `/api/account-books/${accountBookId}/rules`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from create rule');
+    }
+    return response.data.data;
+  },
+
+  async updateRule(
+    accountBookId: string,
+    ruleId: string,
+    data: CreateRuleData
+  ): Promise<CategoryRule> {
+    const response = await apiClient.put<ApiResponse<CategoryRule>>(
+      `/api/account-books/${accountBookId}/rules/${ruleId}`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from update rule');
+    }
+    return response.data.data;
+  },
+
+  async deleteRule(accountBookId: string, ruleId: string): Promise<void> {
+    await apiClient.delete(`/api/account-books/${accountBookId}/rules/${ruleId}`);
   },
 };

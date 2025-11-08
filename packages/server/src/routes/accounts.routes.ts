@@ -6,6 +6,7 @@ import { ApiResponse } from '@finances/shared';
 import multer from 'multer';
 import { parseQIFFile } from '../utils/qifParser';
 import { updateAccountBalance } from '../utils/accountBalances';
+import { applyRulesToTransaction } from '../utils/applyRules';
 
 const router = Router();
 
@@ -247,6 +248,16 @@ router.post('/:accountId/transactions', async (req, res) => {
       });
     }
 
+    // Apply rules to determine category/subcategory
+    const processedTransaction = await applyRulesToTransaction(
+      account[0].accountBookId,
+      {
+        description,
+        category,
+        subCategory: subCategory || '',
+      }
+    );
+
     // Create the transaction
     const newTransaction = await db
       .insert(transactions)
@@ -255,8 +266,8 @@ router.post('/:accountId/transactions', async (req, res) => {
         accountBookId: account[0].accountBookId,
         transactionDate: new Date(transactionDate),
         description,
-        category,
-        subCategory: subCategory || '',
+        category: processedTransaction.category,
+        subCategory: processedTransaction.subCategory || '',
         debitAmount: debitAmount || '0',
         creditAmount: creditAmount || '0',
       })
@@ -320,12 +331,22 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
       });
     }
 
-    // Insert all valid transactions
+    // Insert all valid transactions (with rules applied)
     const insertedTransactions = [];
     const insertErrors: string[] = [];
 
     for (const transaction of parseResult.transactions) {
       try {
+        // Apply rules to determine category/subcategory
+        const processedTransaction = await applyRulesToTransaction(
+          account[0].accountBookId,
+          {
+            description: transaction.description,
+            category: transaction.category,
+            subCategory: transaction.subCategory || '',
+          }
+        );
+
         const newTransaction = await db
           .insert(transactions)
           .values({
@@ -333,8 +354,8 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
             accountBookId: account[0].accountBookId,
             transactionDate: transaction.transactionDate,
             description: transaction.description,
-            category: transaction.category,
-            subCategory: transaction.subCategory || '',
+            category: processedTransaction.category,
+            subCategory: processedTransaction.subCategory || '',
             debitAmount: transaction.debitAmount,
             creditAmount: transaction.creditAmount,
           })

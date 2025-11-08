@@ -7,6 +7,7 @@ import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { HomePage } from "./pages/HomePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AccountsPage } from "./pages/AccountsPage";
+import { RulesPage } from "./pages/RulesPage";
 import theme from "./theme";
 
 function App() {
@@ -38,6 +39,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AccountsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/account-books/:accountBookId/rules"
+              element={
+                <ProtectedRoute>
+                  <RulesPage />
                 </ProtectedRoute>
               }
             />

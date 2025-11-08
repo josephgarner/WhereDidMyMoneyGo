@@ -10,3 +10,7 @@ export { AddAccountForm } from './AddAccountForm';
 export type { AddAccountFormProps } from './AddAccountForm';
 export { EditTransactionModal } from './EditTransactionModal';
 export type { EditTransactionModalProps } from './EditTransactionModal';
+export { AddRuleModal } from './AddRuleModal';
+export type { AddRuleModalProps } from './AddRuleModal';
+export { EditRuleModal } from './EditRuleModal';
+export type { EditRuleModalProps } from './EditRuleModal';

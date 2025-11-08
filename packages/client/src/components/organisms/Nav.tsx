@@ -26,6 +26,7 @@ export function Nav() {
   const showBackButton = accountBookId !== null;
   const isDashboard = location.pathname.endsWith("/dashboard");
   const isAccountsPage = location.pathname.endsWith("/accounts");
+  const isRulesPage = location.pathname.endsWith("/rules");
 
   return (
     <Box bg="navy.800" borderBottom="1px" borderColor="navy.700" py={4}>
@@ -66,6 +67,16 @@ export function Nav() {
                   }
                 >
                   Accounts
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isRulesPage ? "solid" : "ghost"}
+                  colorScheme="teal"
+                  onClick={() =>
+                    navigate(`/account-books/${accountBookId}/rules`)
+                  }
+                >
+                  Rules
                 </Button>
               </HStack>
             )}
