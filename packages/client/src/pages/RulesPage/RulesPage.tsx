@@ -64,6 +64,14 @@ export function RulesPage() {
   } = useDisclosure();
   const [ruleToEdit, setRuleToEdit] = useState<CategoryRule | null>(null);
 
+  // Apply rules confirmation dialog state
+  const {
+    isOpen: isApplyRulesOpen,
+    onOpen: onApplyRulesOpen,
+    onClose: onApplyRulesClose,
+  } = useDisclosure();
+  const [isApplyingRules, setIsApplyingRules] = useState(false);
+
   // Edit rule handlers
   const handleEditClick = (rule: CategoryRule) => {
     setRuleToEdit(rule);
@@ -106,6 +114,37 @@ export function RulesPage() {
     }
   };
 
+  // Apply rules to all transactions handler
+  const handleApplyRulesConfirm = async () => {
+    if (!accountBookId) return;
+
+    try {
+      setIsApplyingRules(true);
+
+      const result = await accountBooksApi.applyRulesToAllTransactions(accountBookId);
+
+      toast({
+        title: "Rules Applied",
+        description: `${result.updatedCount} of ${result.totalTransactions} transaction(s) were updated`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      onApplyRulesClose();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to apply rules",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsApplyingRules(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -133,14 +172,26 @@ export function RulesPage() {
         <Heading size="lg" color="cream.100">
           Category Rules
         </Heading>
-        <Button
-          size="sm"
-          colorScheme="teal"
-          leftIcon={<FaPlus />}
-          onClick={onAddRuleOpen}
-        >
-          Add Rule
-        </Button>
+        <HStack spacing={2}>
+          {rules.length > 0 && (
+            <Button
+              size="sm"
+              colorScheme="purple"
+              variant="outline"
+              onClick={onApplyRulesOpen}
+            >
+              Apply Rules to All Transactions
+            </Button>
+          )}
+          <Button
+            size="sm"
+            colorScheme="teal"
+            leftIcon={<FaPlus />}
+            onClick={onAddRuleOpen}
+          >
+            Add Rule
+          </Button>
+        </HStack>
       </HStack>
 
       <Text color="cream.300" fontSize="sm">
@@ -277,6 +328,50 @@ export function RulesPage() {
           onSuccess={handleRuleSuccess}
         />
       )}
+
+      {/* Apply Rules Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isApplyRulesOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onApplyRulesClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="navy.800" borderColor="navy.700">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+              Apply Rules to All Transactions
+            </AlertDialogHeader>
+
+            <AlertDialogBody color="cream.300">
+              This will apply all current rules to every existing transaction in
+              this account book. Transactions matching rule keywords will have
+              their categories updated. This action cannot be undone.
+              <br />
+              <br />
+              Are you sure you want to continue?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button
+                ref={cancelRef}
+                onClick={onApplyRulesClose}
+                variant="outline"
+                colorScheme="gray"
+                isDisabled={isApplyingRules}
+              >
+                Cancel
+              </Button>
+              <Button
+                colorScheme="purple"
+                onClick={handleApplyRulesConfirm}
+                ml={3}
+                isLoading={isApplyingRules}
+              >
+                Apply Rules
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </VStack>
   );
 }

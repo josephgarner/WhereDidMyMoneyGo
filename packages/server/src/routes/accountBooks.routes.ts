@@ -203,6 +203,78 @@ router.post('/:id/accounts', async (req, res) => {
   }
 });
 
+// GET /api/account-books/:id/accounts/:accountId/balance-history - Get 24-month balance history for a specific account
+router.get('/:id/accounts/:accountId/balance-history', async (req, res) => {
+  try {
+    const { id, accountId } = req.params;
+
+    // Verify account exists and belongs to this account book
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.id, accountId), eq(accounts.accountBookId, id)))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    // Calculate last 24 months
+    const now = new Date();
+    const monthlyBalances = [];
+
+    // For each of the last 24 months
+    for (let i = 23; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+
+      // Calculate balance up to end of this month
+      const result = await db
+        .select({
+          totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
+          totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.accountId, accountId),
+            lte(transactions.transactionDate, monthEnd)
+          )
+        );
+
+      const totalDebits = parseFloat(result[0].totalDebits || '0');
+      const totalCredits = parseFloat(result[0].totalCredits || '0');
+      const balance = totalCredits - totalDebits;
+
+      monthlyBalances.push({
+        month: monthKey,
+        balance: parseFloat(balance.toFixed(2)),
+      });
+    }
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        accountId: account[0].id,
+        accountName: account[0].name,
+        data: monthlyBalances,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching balance history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch balance history',
+    });
+  }
+});
+
 // GET /api/account-books/:id/dashboard-data - Get dashboard data including historical balances and recent transactions
 router.get('/:id/dashboard-data', async (req, res) => {
   try {

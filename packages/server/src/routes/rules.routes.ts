@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { db, categoryRules } from '../db';
+import { db, categoryRules, transactions } from '../db';
 import { eq, and, ilike } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
+import { applyRulesToTransaction } from '../utils/applyRules';
 
 const router = Router();
 
@@ -212,6 +213,77 @@ router.delete('/:accountBookId/rules/:ruleId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete rule',
+    });
+  }
+});
+
+// POST /api/account-books/:accountBookId/rules/apply - Apply all rules to existing transactions
+router.post('/:accountBookId/rules/apply', async (req, res) => {
+  try {
+    const { accountBookId } = req.params;
+
+    // Get all transactions for this account book
+    const allTransactions = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.accountBookId, accountBookId));
+
+    if (allTransactions.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          message: 'No transactions found to apply rules to',
+          updatedCount: 0,
+        },
+      });
+    }
+
+    // Apply rules to each transaction and update if category changed
+    let updatedCount = 0;
+
+    for (const transaction of allTransactions) {
+      const processedTransaction = await applyRulesToTransaction(
+        accountBookId,
+        {
+          description: transaction.description,
+          category: transaction.category,
+          subCategory: transaction.subCategory,
+        }
+      );
+
+      // Only update if the category or subcategory changed
+      if (
+        processedTransaction.category !== transaction.category ||
+        processedTransaction.subCategory !== transaction.subCategory
+      ) {
+        await db
+          .update(transactions)
+          .set({
+            category: processedTransaction.category,
+            subCategory: processedTransaction.subCategory,
+            updatedAt: new Date(),
+          })
+          .where(eq(transactions.id, transaction.id));
+
+        updatedCount++;
+      }
+    }
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        message: `Applied rules to ${updatedCount} transaction(s)`,
+        totalTransactions: allTransactions.length,
+        updatedCount,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error applying rules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply rules',
     });
   }
 });

@@ -14,3 +14,5 @@ export { AddRuleModal } from './AddRuleModal';
 export type { AddRuleModalProps } from './AddRuleModal';
 export { EditRuleModal } from './EditRuleModal';
 export type { EditRuleModalProps } from './EditRuleModal';
+export { AccountBalanceChart } from './AccountBalanceChart';
+export type { AccountBalanceChartProps } from './AccountBalanceChart';

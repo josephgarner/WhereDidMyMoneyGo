@@ -19,15 +19,30 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { ResponsiveLine } from '@nivo/line';
-import { useAccountBooks } from '../../hooks';
+import { useAccountBooks, useAccounts, useLocalStorage } from '../../hooks';
 import { accountBooksApi, DashboardData } from '../../api';
+import { AccountBalanceChart } from '../../components/organisms';
 
 export function DashboardPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
   const { accountBooks } = useAccountBooks();
+  const { accounts } = useAccounts(accountBookId || null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Local storage for selected account - keyed by accountBookId
+  const [selectedAccountId, setSelectedAccountId] = useLocalStorage<string | null>(
+    `dashboard-selected-account-${accountBookId}`,
+    null
+  );
+
+  // Auto-select first account if none selected and accounts are loaded
+  useEffect(() => {
+    if (!selectedAccountId && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts, selectedAccountId, setSelectedAccountId]);
 
   const currentAccountBook = accountBooks.find(book => book.id === accountBookId);
 
@@ -166,6 +181,16 @@ export function DashboardPage() {
             );
           })}
         </SimpleGrid>
+      )}
+
+      {/* 24-Month Balance Chart for Selected Account */}
+      {accountBookId && accounts.length > 0 && (
+        <AccountBalanceChart
+          accountBookId={accountBookId}
+          accounts={accounts}
+          selectedAccountId={selectedAccountId}
+          onAccountChange={setSelectedAccountId}
+        />
       )}
 
       {/* Recent Transactions by Account */}

@@ -12,6 +12,12 @@ export interface AccountHistoricalBalance {
   data: MonthlyBalance[];
 }
 
+export interface AccountBalanceHistory {
+  accountId: string;
+  accountName: string;
+  data: MonthlyBalance[];
+}
+
 export interface AccountRecentTransactions {
   accountId: string;
   accountName: string;
@@ -79,6 +85,16 @@ export const accountBooksApi = {
     );
     if (!response.data.data) {
       throw new Error('No data returned from dashboard');
+    }
+    return response.data.data;
+  },
+
+  async getAccountBalanceHistory(accountBookId: string, accountId: string): Promise<AccountBalanceHistory> {
+    const response = await apiClient.get<ApiResponse<AccountBalanceHistory>>(
+      `/api/account-books/${accountBookId}/accounts/${accountId}/balance-history`
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from balance history');
     }
     return response.data.data;
   },
@@ -255,5 +271,21 @@ export const accountBooksApi = {
 
   async deleteRule(accountBookId: string, ruleId: string): Promise<void> {
     await apiClient.delete(`/api/account-books/${accountBookId}/rules/${ruleId}`);
+  },
+
+  async applyRulesToAllTransactions(accountBookId: string): Promise<{
+    message: string;
+    totalTransactions: number;
+    updatedCount: number;
+  }> {
+    const response = await apiClient.post<ApiResponse<{
+      message: string;
+      totalTransactions: number;
+      updatedCount: number;
+    }>>(`/api/account-books/${accountBookId}/rules/apply`);
+    if (!response.data.data) {
+      throw new Error('No data returned from apply rules');
+    }
+    return response.data.data;
   },
 };
