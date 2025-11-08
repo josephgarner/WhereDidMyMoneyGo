@@ -1,0 +1,841 @@
+!Type:Bank
+D09/09/2025
+T-45.32
+PStarbucks Coffee
+LFood:Coffee
+^
+D09/09/2025
+T-125.67
+PWhole Foods Market
+LFood:Groceries
+^
+D09/10/2025
+T-52.00
+PShell Gas Station
+LTransportation:Fuel
+^
+D09/10/2025
+T-15.99
+PNetflix Subscription
+LEntertainment:Streaming
+^
+D09/11/2025
+T2500.00
+PPaycheck Deposit
+LIncome:Salary
+^
+D09/11/2025
+T-89.45
+PTarget
+LShopping:General
+^
+D09/12/2025
+T-12.50
+PMcDonald's
+LFood:Fast Food
+^
+D09/12/2025
+T-67.89
+PElectric Company
+LUtilities:Electric
+^
+D09/13/2025
+T-1200.00
+PRent Payment
+LHousing:Rent
+^
+D09/13/2025
+T-34.56
+PChipotle
+LFood:Restaurants
+^
+D09/14/2025
+T-78.90
+PCostco
+LFood:Groceries
+^
+D09/14/2025
+T-25.00
+PUber Ride
+LTransportation:Rideshare
+^
+D09/15/2025
+T-156.78
+PAmazon Purchase
+LShopping:Online
+^
+D09/15/2025
+T-42.30
+PPizza Hut
+LFood:Restaurants
+^
+D09/16/2025
+T-95.00
+PVerizon Wireless
+LUtilities:Phone
+^
+D09/16/2025
+T-18.75
+PDunkin' Donuts
+LFood:Coffee
+^
+D09/17/2025
+T-234.56
+PNike Store
+LShopping:Clothing
+^
+D09/17/2025
+T-58.90
+PChevron Gas
+LTransportation:Fuel
+^
+D09/18/2025
+T-29.99
+PSpotify Premium
+LEntertainment:Streaming
+^
+D09/18/2025
+T-145.67
+PSafeway
+LFood:Groceries
+^
+D09/19/2025
+T-75.00
+PGym Membership
+LHealth:Fitness
+^
+D09/19/2025
+T-22.45
+PSubway
+LFood:Fast Food
+^
+D09/20/2025
+T-189.00
+PComcast Internet
+LUtilities:Internet
+^
+D09/20/2025
+T-36.78
+PStarbucks Coffee
+LFood:Coffee
+^
+D09/21/2025
+T-450.00
+PCar Insurance
+LInsurance:Auto
+^
+D09/21/2025
+T-67.89
+PTrader Joe's
+LFood:Groceries
+^
+D09/22/2025
+T-125.00
+PDentist Appointment
+LHealth:Medical
+^
+D09/22/2025
+T-44.32
+PTaco Bell
+LFood:Fast Food
+^
+D09/23/2025
+T-89.99
+PBest Buy
+LElectronics
+^
+D09/23/2025
+T-55.67
+PTexaco Gas
+LTransportation:Fuel
+^
+D09/24/2025
+T-178.90
+PMacy's
+LShopping:Clothing
+^
+D09/24/2025
+T-31.25
+PPanera Bread
+LFood:Restaurants
+^
+D09/25/2025
+T2500.00
+PPaycheck Deposit
+LIncome:Salary
+^
+D09/25/2025
+T-98.76
+PWalmart
+LShopping:General
+^
+D09/26/2025
+T-45.00
+PWater Bill
+LUtilities:Water
+^
+D09/26/2025
+T-23.45
+PBurger King
+LFood:Fast Food
+^
+D09/27/2025
+T-167.89
+PPublix
+LFood:Groceries
+^
+D09/27/2025
+T-38.90
+PLyft Ride
+LTransportation:Rideshare
+^
+D09/28/2025
+T-89.99
+PHulu Subscription
+LEntertainment:Streaming
+^
+D09/28/2025
+T-52.34
+PDomino's Pizza
+LFood:Restaurants
+^
+D09/29/2025
+T-134.56
+PHome Depot
+LHome:Improvement
+^
+D09/29/2025
+T-27.89
+PCoffee Bean
+LFood:Coffee
+^
+D09/30/2025
+T-76.45
+PArco Gas
+LTransportation:Fuel
+^
+D09/30/2025
+T-145.00
+POptometrist
+LHealth:Medical
+^
+D10/01/2025
+T-198.76
+PNordstrom
+LShopping:Clothing
+^
+D10/01/2025
+T-41.23
+PChick-fil-A
+LFood:Fast Food
+^
+D10/02/2025
+T-156.78
+PKroger
+LFood:Groceries
+^
+D10/02/2025
+T-32.50
+PStarbucks Coffee
+LFood:Coffee
+^
+D10/03/2025
+T-89.00
+PGas Bill
+LUtilities:Gas
+^
+D10/03/2025
+T-28.90
+PWendy's
+LFood:Fast Food
+^
+D10/04/2025
+T-234.56
+PApple Store
+LElectronics
+^
+D10/04/2025
+T-54.32
+PShell Gas
+LTransportation:Fuel
+^
+D10/05/2025
+T-125.67
+PTarget
+LShopping:General
+^
+D10/05/2025
+T-38.45
+POutback Steakhouse
+LFood:Restaurants
+^
+D10/06/2025
+T-67.89
+PCVS Pharmacy
+LHealth:Pharmacy
+^
+D10/06/2025
+T-22.30
+PDunkin' Donuts
+LFood:Coffee
+^
+D10/07/2025
+T-189.00
+PHOA Fees
+LHousing:HOA
+^
+D10/07/2025
+T-45.67
+PPanda Express
+LFood:Fast Food
+^
+D10/08/2025
+T-98.76
+PWhole Foods
+LFood:Groceries
+^
+D10/08/2025
+T-56.78
+PChevron Gas
+LTransportation:Fuel
+^
+D10/09/2025
+T2500.00
+PPaycheck Deposit
+LIncome:Salary
+^
+D10/09/2025
+T-145.89
+PIKEA
+LHome:Furniture
+^
+D10/10/2025
+T-78.90
+PYoga Class
+LHealth:Fitness
+^
+D10/10/2025
+T-34.56
+PStarbucks Coffee
+LFood:Coffee
+^
+D10/11/2025
+T-167.45
+PAmazon Prime
+LShopping:Online
+^
+D10/11/2025
+T-29.90
+PJimmy John's
+LFood:Fast Food
+^
+D10/12/2025
+T-1200.00
+PRent Payment
+LHousing:Rent
+^
+D10/12/2025
+T-52.34
+PBP Gas Station
+LTransportation:Fuel
+^
+D10/13/2025
+T-89.99
+PPrescription
+LHealth:Pharmacy
+^
+D10/13/2025
+T-41.23
+POlive Garden
+LFood:Restaurants
+^
+D10/14/2025
+T-134.56
+PLowe's
+LHome:Improvement
+^
+D10/14/2025
+T-25.67
+PDunkin' Donuts
+LFood:Coffee
+^
+D10/15/2025
+T-198.00
+PCar Maintenance
+LTransportation:Maintenance
+^
+D10/15/2025
+T-36.78
+PPopeyes
+LFood:Fast Food
+^
+D10/16/2025
+T-156.89
+PAldi
+LFood:Groceries
+^
+D10/16/2025
+T-48.90
+PTexaco Gas
+LTransportation:Fuel
+^
+D10/17/2025
+T-95.00
+PVerizon Wireless
+LUtilities:Phone
+^
+D10/17/2025
+T-32.45
+PStarbucks Coffee
+LFood:Coffee
+^
+D10/18/2025
+T-267.89
+PZara
+LShopping:Clothing
+^
+D10/18/2025
+T-44.56
+PRed Lobster
+LFood:Restaurants
+^
+D10/19/2025
+T-78.90
+PWalgreens
+LHealth:Pharmacy
+^
+D10/19/2025
+T-28.34
+PTaco Bell
+LFood:Fast Food
+^
+D10/20/2025
+T-189.00
+PComcast Internet
+LUtilities:Internet
+^
+D10/20/2025
+T-54.67
+PShell Gas
+LTransportation:Fuel
+^
+D10/21/2025
+T-145.78
+PTrader Joe's
+LFood:Groceries
+^
+D10/21/2025
+T-38.90
+PCoffee Bean
+LFood:Coffee
+^
+D10/22/2025
+T-89.99
+PDisney+ Subscription
+LEntertainment:Streaming
+^
+D10/22/2025
+T-25.45
+PSubway
+LFood:Fast Food
+^
+D10/23/2025
+T2500.00
+PPaycheck Deposit
+LIncome:Salary
+^
+D10/23/2025
+T-167.89
+PAmazon Purchase
+LShopping:Online
+^
+D10/24/2025
+T-98.76
+PLa Fitness
+LHealth:Fitness
+^
+D10/24/2025
+T-42.30
+PChipotle
+LFood:Restaurants
+^
+D10/25/2025
+T-67.89
+PElectric Bill
+LUtilities:Electric
+^
+D10/25/2025
+T-31.25
+PStarbucks Coffee
+LFood:Coffee
+^
+D10/26/2025
+T-134.56
+PCostco
+LFood:Groceries
+^
+D10/26/2025
+T-58.90
+PChevron Gas
+LTransportation:Fuel
+^
+D10/27/2025
+T-225.00
+PPhysical Therapy
+LHealth:Medical
+^
+D10/27/2025
+T-36.78
+PKFC
+LFood:Fast Food
+^
+D10/28/2025
+T-189.00
+PRenters Insurance
+LInsurance:Home
+^
+D10/28/2025
+T-44.56
+PDomino's Pizza
+LFood:Restaurants
+^
+D10/29/2025
+T-98.76
+PBed Bath & Beyond
+LHome:General
+^
+D10/29/2025
+T-28.90
+PDunkin' Donuts
+LFood:Coffee
+^
+D10/30/2025
+T-156.78
+PPublix
+LFood:Groceries
+^
+D10/30/2025
+T-52.34
+PShell Gas
+LTransportation:Fuel
+^
+D10/31/2025
+T-89.99
+PAmazon Music
+LEntertainment:Streaming
+^
+D10/31/2025
+T-34.56
+PBurger King
+LFood:Fast Food
+^
+D11/01/2025
+T-178.90
+PH&M
+LShopping:Clothing
+^
+D11/01/2025
+T-41.23
+PStarbucks Coffee
+LFood:Coffee
+^
+D11/02/2025
+T-145.67
+PWhole Foods
+LFood:Groceries
+^
+D11/02/2025
+T-56.78
+PArco Gas
+LTransportation:Fuel
+^
+D11/03/2025
+T-89.00
+PWater Bill
+LUtilities:Water
+^
+D11/03/2025
+T-29.90
+PWendy's
+LFood:Fast Food
+^
+D11/04/2025
+T-267.89
+PApple Store
+LElectronics
+^
+D11/04/2025
+T-38.45
+PPanera Bread
+LFood:Restaurants
+^
+D11/05/2025
+T-98.76
+PTarget
+LShopping:General
+^
+D11/05/2025
+T-32.50
+PCoffee Bean
+LFood:Coffee
+^
+D11/06/2025
+T2500.00
+PPaycheck Deposit
+LIncome:Salary
+^
+D11/06/2025
+T-167.89
+PKroger
+LFood:Groceries
+^
+D11/07/2025
+T-54.32
+PTexaco Gas
+LTransportation:Fuel
+^
+D11/07/2025
+T-25.67
+PDunkin' Donuts
+LFood:Coffee
+^
+D11/08/2025
+T-1200.00
+PRent Payment
+LHousing:Rent
+^
+D11/08/2025
+T-44.56
+PTaco Bell
+LFood:Fast Food
+^
+D11/09/2025
+T-89.99
+PGym Membership
+LHealth:Fitness
+^
+D11/09/2025
+T-36.78
+PChick-fil-A
+LFood:Fast Food
+^
+D11/09/2025
+T-134.56
+PSafeway
+LFood:Groceries
+^
+D11/09/2025
+T-28.90
+PStarbucks Coffee
+LFood:Coffee
+^
+D11/09/2025
+T-450.00
+PCar Insurance
+LInsurance:Auto
+^
+D11/09/2025
+T-52.34
+PShell Gas
+LTransportation:Fuel
+^
+D11/09/2025
+T-95.00
+PVerizon Wireless
+LUtilities:Phone
+^
+D11/09/2025
+T-41.23
+PSubway
+LFood:Fast Food
+^
+D11/09/2025
+T-189.00
+PComcast Internet
+LUtilities:Internet
+^
+D11/09/2025
+T-67.89
+PTrader Joe's
+LFood:Groceries
+^
+D11/09/2025
+T-38.45
+PStarbucks Coffee
+LFood:Coffee
+^
+D11/09/2025
+T-156.78
+PAmazon Purchase
+LShopping:Online
+^
+D11/09/2025
+T-29.90
+PPopeyes
+LFood:Fast Food
+^
+D11/09/2025
+T-98.76
+PWalmart
+LShopping:General
+^
+D11/09/2025
+T-56.78
+PChevron Gas
+LTransportation:Fuel
+^
+D11/09/2025
+T-78.90
+PElectric Bill
+LUtilities:Electric
+^
+D11/09/2025
+T-34.56
+PCoffee Bean
+LFood:Coffee
+^
+D11/09/2025
+T-167.89
+PPublix
+LFood:Groceries
+^
+D11/09/2025
+T-25.45
+PBurger King
+LFood:Fast Food
+^
+D11/09/2025
+T-89.99
+PNetflix Subscription
+LEntertainment:Streaming
+^
+D11/09/2025
+T-42.30
+PDomino's Pizza
+LFood:Restaurants
+^
+D11/09/2025
+T-134.56
+PHome Depot
+LHome:Improvement
+^
+D11/09/2025
+T-31.25
+PDunkin' Donuts
+LFood:Coffee
+^
+D11/09/2025
+T-54.67
+PArco Gas
+LTransportation:Fuel
+^
+D11/09/2025
+T-198.00
+PDentist Appointment
+LHealth:Medical
+^
+D11/09/2025
+T-36.78
+PWendy's
+LFood:Fast Food
+^
+D11/09/2025
+T-145.67
+PAldi
+LFood:Groceries
+^
+D11/09/2025
+T-28.90
+PStarbucks Coffee
+LFood:Coffee
+^
+D11/09/2025
+T-267.89
+PNordstrom
+LShopping:Clothing
+^
+D11/09/2025
+T-44.56
+PChipotle
+LFood:Restaurants
+^
+D11/09/2025
+T-89.00
+PHOA Fees
+LHousing:HOA
+^
+D11/09/2025
+T-52.34
+PBP Gas Station
+LTransportation:Fuel
+^
+D11/09/2025
+T-125.67
+PTarget
+LShopping:General
+^
+D11/09/2025
+T-38.45
+PPanda Express
+LFood:Fast Food
+^
+D11/09/2025
+T-67.89
+PCVS Pharmacy
+LHealth:Pharmacy
+^
+D11/09/2025
+T-32.50
+PCoffee Bean
+LFood:Coffee
+^
+D11/09/2025
+T-156.78
+PWhole Foods
+LFood:Groceries
+^
+D11/09/2025
+T-29.90
+PJimmy John's
+LFood:Fast Food
+^
+D11/09/2025
+T-98.76
+PLowe's
+LHome:Improvement
+^
+D11/09/2025
+T-56.78
+PTexaco Gas
+LTransportation:Fuel
+^
+D11/09/2025
+T-189.00
+PCar Maintenance
+LTransportation:Maintenance
+^
+D11/09/2025
+T-41.23
+PKFC
+LFood:Fast Food
+^
+D11/09/2025
+T-134.56
+PCostco
+LFood:Groceries
+^
+D11/09/2025
+T-25.67
+PStarbucks Coffee
+LFood:Coffee
+^
+D11/09/2025
+T-78.90
+PSpotify Premium
+LEntertainment:Streaming
+^
+D11/09/2025
+T-36.78
+PTaco Bell
+LFood:Fast Food
+^

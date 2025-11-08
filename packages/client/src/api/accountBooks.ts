@@ -158,6 +158,18 @@ export const accountBooksApi = {
     return response.data.data as Transaction;
   },
 
+  async updateTransaction(
+    accountId: string,
+    transactionId: string,
+    data: CreateTransactionData
+  ): Promise<Transaction> {
+    const response = await apiClient.put<ApiResponse<Transaction>>(
+      `/api/accounts/${accountId}/transactions/${transactionId}`,
+      data
+    );
+    return response.data.data as Transaction;
+  },
+
   async uploadQIFFile(accountId: string, file: File): Promise<{
     imported: number;
     failed: number;

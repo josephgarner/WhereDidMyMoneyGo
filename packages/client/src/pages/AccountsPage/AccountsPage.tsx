@@ -30,7 +30,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from "@chakra-ui/react";
-import { FaTrash } from "react-icons/fa6";
+import { FaTrash, FaPen } from "react-icons/fa6";
 import {
   useAccounts,
   useTransactions,
@@ -42,10 +42,12 @@ import {
   AddTransactionForm,
   UploadQIFForm,
   AddAccountForm,
+  EditTransactionModal,
 } from "../../components/organisms";
 import { Pagination } from "../../components/molecules";
 import { TransactionFilters, accountBooksApi } from "../../api";
 import { useRef } from "react";
+import { Transaction } from "@finances/shared";
 
 export function AccountsPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
@@ -73,6 +75,10 @@ export function AccountsPage() {
   const { isOpen: isDeleteMonthOpen, onOpen: onDeleteMonthOpen, onClose: onDeleteMonthClose } = useDisclosure();
   const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+
+  // Edit dialog state
+  const { isOpen: isEditTransactionOpen, onOpen: onEditTransactionOpen, onClose: onEditTransactionClose } = useDisclosure();
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
 
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
@@ -163,6 +169,18 @@ export function AccountsPage() {
         isClosable: true,
       });
     }
+  };
+
+  // Edit transaction handlers
+  const handleEditTransactionClick = (transaction: Transaction) => {
+    setTransactionToEdit(transaction);
+    onEditTransactionOpen();
+  };
+
+  const handleEditTransactionSuccess = () => {
+    refetch();
+    refetchAccounts();
+    onEditTransactionClose();
   };
 
   // Delete transaction handlers
@@ -460,7 +478,7 @@ export function AccountsPage() {
                                   <Th color="cream.300" width="100px" isNumeric>
                                     Credit
                                   </Th>
-                                  <Th color="cream.300" width="50px"></Th>
+                                  <Th color="cream.300" width="80px"></Th>
                                 </Tr>
                               </Thead>
                               <Tbody>
@@ -524,15 +542,25 @@ export function AccountsPage() {
                                           ).toFixed(2)}`
                                         : "-"}
                                     </Td>
-                                    <Td width="50px">
-                                      <IconButton
-                                        aria-label="Delete transaction"
-                                        icon={<FaTrash />}
-                                        size="xs"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                        onClick={() => handleDeleteTransactionClick(transaction.id)}
-                                      />
+                                    <Td width="80px">
+                                      <HStack spacing={1}>
+                                        <IconButton
+                                          aria-label="Edit transaction"
+                                          icon={<FaPen />}
+                                          size="xs"
+                                          variant="ghost"
+                                          colorScheme="teal"
+                                          onClick={() => handleEditTransactionClick(transaction)}
+                                        />
+                                        <IconButton
+                                          aria-label="Delete transaction"
+                                          icon={<FaTrash />}
+                                          size="xs"
+                                          variant="ghost"
+                                          colorScheme="red"
+                                          onClick={() => handleDeleteTransactionClick(transaction.id)}
+                                        />
+                                      </HStack>
                                     </Td>
                                   </Tr>
                                 ))}
@@ -646,6 +674,16 @@ export function AccountsPage() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {/* Edit Transaction Modal */}
+      {transactionToEdit && (
+        <EditTransactionModal
+          isOpen={isEditTransactionOpen}
+          onClose={onEditTransactionClose}
+          transaction={transactionToEdit}
+          onSuccess={handleEditTransactionSuccess}
+        />
+      )}
     </VStack>
   );
 }

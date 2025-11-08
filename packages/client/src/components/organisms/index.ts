@@ -8,3 +8,5 @@ export { UploadQIFForm } from './UploadQIFForm';
 export type { UploadQIFFormProps } from './UploadQIFForm';
 export { AddAccountForm } from './AddAccountForm';
 export type { AddAccountFormProps } from './AddAccountForm';
+export { EditTransactionModal } from './EditTransactionModal';
+export type { EditTransactionModalProps } from './EditTransactionModal';

@@ -377,6 +377,81 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
   }
 });
 
+// PUT /api/accounts/:accountId/transactions/:transactionId - Update a transaction
+router.put('/:accountId/transactions/:transactionId', async (req, res) => {
+  try {
+    const { accountId, transactionId } = req.params;
+    const {
+      transactionDate,
+      description,
+      category,
+      subCategory,
+      debitAmount,
+      creditAmount,
+    } = req.body;
+
+    // Verify transaction exists and belongs to this account
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, transactionId))
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found',
+      });
+    }
+
+    if (transaction[0].accountId !== accountId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Transaction does not belong to this account',
+      });
+    }
+
+    // Validate required fields
+    if (!transactionDate || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: transactionDate, description, category',
+      });
+    }
+
+    // Update the transaction
+    const updatedTransaction = await db
+      .update(transactions)
+      .set({
+        transactionDate: new Date(transactionDate),
+        description,
+        category,
+        subCategory: subCategory || '',
+        debitAmount: debitAmount || '0',
+        creditAmount: creditAmount || '0',
+        updatedAt: new Date(),
+      })
+      .where(eq(transactions.id, transactionId))
+      .returning();
+
+    // Update account balance after updating transaction
+    await updateAccountBalance(accountId);
+
+    const response: ApiResponse = {
+      success: true,
+      data: updatedTransaction[0],
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update transaction',
+    });
+  }
+});
+
 // DELETE /api/accounts/:accountId/transactions/:transactionId - Delete a single transaction
 router.delete('/:accountId/transactions/:transactionId', async (req, res) => {
   try {
