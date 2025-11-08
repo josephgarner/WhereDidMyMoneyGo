@@ -1,32 +1,48 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Box,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   Button,
   VStack,
   HStack,
   useToast,
-  Collapse,
   Text,
-  IconButton,
   Input,
   FormControl,
   FormLabel,
   FormHelperText,
+  Box,
 } from '@chakra-ui/react';
-import { FaPlus, FaMinus, FaUpload } from 'react-icons/fa6';
+import { FaUpload } from 'react-icons/fa6';
 import { accountBooksApi } from '../../api';
 
 export interface UploadQIFFormProps {
+  isOpen: boolean;
+  onClose: () => void;
   accountId: string;
   onSuccess: () => void;
 }
 
-export function UploadQIFForm({ accountId, onSuccess }: UploadQIFFormProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function UploadQIFForm({ isOpen, onClose, accountId, onSuccess }: UploadQIFFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+
+  // Reset file when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [isOpen]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,7 +111,7 @@ export function UploadQIFForm({ accountId, onSuccess }: UploadQIFFormProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      setIsOpen(false);
+      onClose();
       onSuccess();
     } catch (error: any) {
       toast({
@@ -110,101 +126,80 @@ export function UploadQIFForm({ accountId, onSuccess }: UploadQIFFormProps) {
     }
   };
 
-  const handleCancel = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    setIsOpen(false);
-  };
-
   return (
-    <Box
-      p={4}
-      bg="navy.800"
-      borderRadius="md"
-      borderWidth="1px"
-      borderColor="navy.700"
-    >
-      <HStack justify="space-between" mb={isOpen ? 4 : 0}>
-        <Text fontWeight="bold" color="cream.100" fontSize="sm">
-          Import QIF File
-        </Text>
-        <IconButton
-          aria-label={isOpen ? 'Close form' : 'Open form'}
-          icon={isOpen ? <FaMinus /> : <FaPlus />}
-          size="sm"
-          variant="ghost"
-          colorScheme="teal"
-          onClick={() => setIsOpen(!isOpen)}
-        />
-      </HStack>
-
-      <Collapse in={isOpen} animateOpacity>
-        <VStack spacing={4} align="stretch">
-          <FormControl>
-            <FormLabel color="cream.300" fontSize="sm">
-              Select QIF File
-            </FormLabel>
-            <Input
-              ref={fileInputRef}
-              type="file"
-              accept=".qif"
-              onChange={handleFileSelect}
-              size="sm"
-              bg="navy.900"
-              borderColor="navy.700"
-              color="cream.100"
-              _hover={{ borderColor: 'teal.500' }}
-              sx={{
-                '::file-selector-button': {
-                  bg: 'teal.600',
-                  color: 'cream.100',
-                  border: 'none',
-                  borderRadius: 'md',
-                  px: 3,
-                  py: 1,
-                  mr: 3,
-                  cursor: 'pointer',
-                  _hover: {
-                    bg: 'teal.500',
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <ModalOverlay />
+      <ModalContent bg="navy.800" borderColor="navy.700" borderWidth="1px">
+        <ModalHeader color="cream.100">Import QIF File</ModalHeader>
+        <ModalCloseButton color="cream.100" />
+        <ModalBody>
+          <VStack spacing={4} align="stretch">
+            <FormControl>
+              <FormLabel color="cream.300" fontSize="sm">
+                Select QIF File
+              </FormLabel>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".qif"
+                onChange={handleFileSelect}
+                size="sm"
+                bg="navy.900"
+                borderColor="navy.700"
+                color="cream.100"
+                _hover={{ borderColor: 'teal.500' }}
+                sx={{
+                  '::file-selector-button': {
+                    bg: 'teal.600',
+                    color: 'cream.100',
+                    border: 'none',
+                    borderRadius: 'md',
+                    px: 3,
+                    py: 1,
+                    mr: 3,
+                    cursor: 'pointer',
+                    _hover: {
+                      bg: 'teal.500',
+                    },
                   },
-                },
-              }}
-            />
-            <FormHelperText color="cream.500" fontSize="xs">
-              Upload a Quicken Interchange Format (.qif) file
-            </FormHelperText>
-          </FormControl>
+                }}
+              />
+              <FormHelperText color="cream.500" fontSize="xs">
+                Upload a Quicken Interchange Format (.qif) file
+              </FormHelperText>
+            </FormControl>
 
-          {selectedFile && (
-            <Box
-              p={2}
-              bg="navy.900"
-              borderRadius="md"
-              borderWidth="1px"
-              borderColor="teal.700"
-            >
-              <HStack>
-                <FaUpload color="var(--chakra-colors-teal-400)" />
-                <VStack align="start" spacing={0} flex={1}>
-                  <Text color="cream.100" fontSize="sm" fontWeight="medium">
-                    {selectedFile.name}
-                  </Text>
-                  <Text color="cream.400" fontSize="xs">
-                    {(selectedFile.size / 1024).toFixed(2)} KB
-                  </Text>
-                </VStack>
-              </HStack>
-            </Box>
-          )}
+            {selectedFile && (
+              <Box
+                p={2}
+                bg="navy.900"
+                borderRadius="md"
+                borderWidth="1px"
+                borderColor="teal.700"
+              >
+                <HStack>
+                  <FaUpload color="var(--chakra-colors-teal-400)" />
+                  <VStack align="start" spacing={0} flex={1}>
+                    <Text color="cream.100" fontSize="sm" fontWeight="medium">
+                      {selectedFile.name}
+                    </Text>
+                    <Text color="cream.400" fontSize="xs">
+                      {(selectedFile.size / 1024).toFixed(2)} KB
+                    </Text>
+                  </VStack>
+                </HStack>
+              </Box>
+            )}
+          </VStack>
+        </ModalBody>
 
-          <HStack spacing={3} justify="flex-end" pt={2}>
+        <ModalFooter>
+          <HStack spacing={3}>
             <Button
               size="sm"
               variant="outline"
               colorScheme="teal"
-              onClick={handleCancel}
+              onClick={onClose}
               isDisabled={isUploading}
             >
               Cancel
@@ -220,8 +215,8 @@ export function UploadQIFForm({ accountId, onSuccess }: UploadQIFFormProps) {
               Upload & Import
             </Button>
           </HStack>
-        </VStack>
-      </Collapse>
-    </Box>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }

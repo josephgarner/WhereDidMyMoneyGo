@@ -80,6 +80,12 @@ export function AccountsPage() {
   const { isOpen: isEditTransactionOpen, onOpen: onEditTransactionOpen, onClose: onEditTransactionClose } = useDisclosure();
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
 
+  // Add transaction modal state
+  const { isOpen: isAddTransactionOpen, onOpen: onAddTransactionOpen, onClose: onAddTransactionClose } = useDisclosure();
+
+  // Upload QIF modal state
+  const { isOpen: isUploadQIFOpen, onOpen: onUploadQIFOpen, onClose: onUploadQIFClose } = useDisclosure();
+
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
 
@@ -127,6 +133,14 @@ export function AccountsPage() {
   const handleTransactionAdded = () => {
     refetch(); // Refresh transactions list
     refetchAccounts(); // Refresh accounts list to update balance
+    onAddTransactionClose(); // Close add transaction modal
+  };
+
+  // Function to refresh after QIF upload
+  const handleQIFUploadSuccess = () => {
+    refetch();
+    refetchAccounts();
+    onUploadQIFClose(); // Close upload modal
   };
 
   // Function to refresh accounts after adding a new one
@@ -347,49 +361,45 @@ export function AccountsPage() {
           <GridItem>
             <VStack spacing={2} align="stretch">
               {selectedAccountId && (
-                <Grid
-                  templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }}
-                  gap={2}
-                >
-                  <GridItem>
-                    <AddTransactionForm
-                      accountId={selectedAccountId}
-                      onSuccess={handleTransactionAdded}
-                    />
-                  </GridItem>
-
-                  <GridItem>
-                    <UploadQIFForm
-                      accountId={selectedAccountId}
-                      onSuccess={handleTransactionAdded}
-                    />
-                  </GridItem>
-
-                  {selectedAccountId && metadata.availableMonths.length > 0 && (
-                    <GridItem>
-                      <VStack align="stretch" spacing={2}>
-                        <TransactionDateFilter
-                          availableMonths={metadata.availableMonths}
-                          minDate={minDate}
-                          maxDate={maxDate}
-                          value={dateFilter}
-                          onChange={handleDateFilterChange}
-                        />
-                        {dateFilter.type === 'month' && dateFilter.month && (
-                          <Button
-                            size="sm"
-                            colorScheme="red"
-                            variant="outline"
-                            leftIcon={<FaTrash />}
-                            onClick={onDeleteMonthOpen}
-                          >
-                            Delete Month Transactions
-                          </Button>
-                        )}
-                      </VStack>
-                    </GridItem>
+                <HStack spacing={2} wrap="wrap">
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    variant="solid"
+                    onClick={onAddTransactionOpen}
+                  >
+                    Add Transaction
+                  </Button>
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    variant="outline"
+                    onClick={onUploadQIFOpen}
+                  >
+                    Import QIF File
+                  </Button>
+                  {dateFilter.type === 'month' && dateFilter.month && (
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      variant="outline"
+                      leftIcon={<FaTrash />}
+                      onClick={onDeleteMonthOpen}
+                    >
+                      Delete Month Transactions
+                    </Button>
                   )}
-                </Grid>
+                </HStack>
+              )}
+
+              {selectedAccountId && metadata.availableMonths.length > 0 && (
+                <TransactionDateFilter
+                  availableMonths={metadata.availableMonths}
+                  minDate={minDate}
+                  maxDate={maxDate}
+                  value={dateFilter}
+                  onChange={handleDateFilterChange}
+                />
               )}
 
               <Card minH="100px">
@@ -682,6 +692,26 @@ export function AccountsPage() {
           onClose={onEditTransactionClose}
           transaction={transactionToEdit}
           onSuccess={handleEditTransactionSuccess}
+        />
+      )}
+
+      {/* Add Transaction Modal */}
+      {selectedAccountId && (
+        <AddTransactionForm
+          isOpen={isAddTransactionOpen}
+          onClose={onAddTransactionClose}
+          accountId={selectedAccountId}
+          onSuccess={handleTransactionAdded}
+        />
+      )}
+
+      {/* Upload QIF Modal */}
+      {selectedAccountId && (
+        <UploadQIFForm
+          isOpen={isUploadQIFOpen}
+          onClose={onUploadQIFClose}
+          accountId={selectedAccountId}
+          onSuccess={handleQIFUploadSuccess}
         />
       )}
     </VStack>
