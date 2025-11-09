@@ -30,7 +30,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from "@chakra-ui/react";
-import { FaTrash, FaPen } from "react-icons/fa6";
+import { FaTrash, FaPen, FaRotate } from "react-icons/fa6";
 import {
   useAccounts,
   useTransactions,
@@ -85,6 +85,9 @@ export function AccountsPage() {
 
   // Upload QIF modal state
   const { isOpen: isUploadQIFOpen, onOpen: onUploadQIFOpen, onClose: onUploadQIFClose } = useDisclosure();
+
+  // Recalculate balances state
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
@@ -146,6 +149,34 @@ export function AccountsPage() {
   // Function to refresh accounts after adding a new one
   const handleAccountAdded = () => {
     refetchAccounts();
+  };
+
+  // Recalculate balances handler
+  const handleRecalculateBalances = async () => {
+    if (!accountBookId) return;
+
+    setIsRecalculating(true);
+    try {
+      const result = await accountBooksApi.recalculateBalances(accountBookId);
+      toast({
+        title: 'Balances Recalculated',
+        description: `Successfully updated ${result.successful} of ${result.total} accounts`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+      refetchAccounts(); // Refresh to show updated balances
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to recalculate balances',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   // Delete account handlers
@@ -287,9 +318,22 @@ export function AccountsPage() {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="cream.100">
-        Accounts
-      </Heading>
+      <HStack justify="space-between" align="center">
+        <Heading size="lg" color="cream.100">
+          Accounts
+        </Heading>
+        <Button
+          size="sm"
+          colorScheme="teal"
+          variant="outline"
+          leftIcon={<FaRotate />}
+          onClick={handleRecalculateBalances}
+          isLoading={isRecalculating}
+          loadingText="Recalculating..."
+        >
+          Recalculate Balances
+        </Button>
+      </HStack>
 
       <Grid templateColumns={{ base: "1fr", lg: "350px 1fr" }} gap={2}>
         <GridItem>

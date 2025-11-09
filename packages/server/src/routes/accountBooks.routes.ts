@@ -106,51 +106,18 @@ router.get("/:id/accounts/:accountId/balance-history", async (req, res) => {
       });
     }
 
-    logger.info("Account found, calculating balance history", {
+    logger.info("Account found, returning balance history", {
       accountBookId: id,
       accountId,
       accountName: account[0].name,
     });
 
-    // Calculate last 24 months
-    const now = new Date();
-    const monthlyBalances = [];
-
-    // For each of the last 24 months
-    for (let i = 23; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      // For the current month (i === 0), use current time; otherwise use month end
-      const monthEnd =
-        i === 0
-          ? now
-          : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-      const monthKey = `${monthDate.getFullYear()}-${String(
-        monthDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-      // Calculate balance up to end of this month (or now for current month)
-      const result = await db
-        .select({
-          totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
-          totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.accountId, accountId),
-            lte(transactions.transactionDate, monthEnd)
-          )
-        );
-
-      const totalDebits = parseFloat(result[0].totalDebits || "0");
-      const totalCredits = parseFloat(result[0].totalCredits || "0");
-      const balance = totalCredits - totalDebits;
-
-      monthlyBalances.push({
-        month: monthKey,
-        balance: parseFloat(balance.toFixed(2)),
-      });
-    }
+    // Use the stored historicalBalance from the account
+    const historicalBalance = account[0].historicalBalance || [];
+    const monthlyBalances = historicalBalance.map((item) => ({
+      month: item.month,
+      balance: item.balance || 0,
+    }));
 
     const response: ApiResponse = {
       success: true,
@@ -383,89 +350,27 @@ router.get("/:id/dashboard-data", async (req, res) => {
       .from(accounts)
       .where(eq(accounts.accountBookId, id));
 
-    // Calculate last 6 months
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-
-    // Build historical balance data and monthly debit/credit data for each account
+    // Build historical balance data from the stored historicalBalance field
     const historicalData = [];
     const monthlyDebitCreditData = [];
 
     for (const account of bookAccounts) {
-      const monthlyBalances = [];
-      const monthlyDebitCredit = [];
+      // Get last 6 months from historicalBalance
+      const historicalBalance = account.historicalBalance || [];
+      const last6Months = historicalBalance.slice(-6);
 
-      // For each of the last 6 months
-      for (let i = 5; i >= 0; i--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        // For the current month (i === 0), use current time; otherwise use month end
-        const monthEnd =
-          i === 0
-            ? now
-            : new Date(
-                now.getFullYear(),
-                now.getMonth() - i + 1,
-                0,
-                23,
-                59,
-                59
-              );
-        const monthKey = `${monthDate.getFullYear()}-${String(
-          monthDate.getMonth() + 1
-        ).padStart(2, "0")}`;
+      // Format for balance chart (cumulative balance)
+      const monthlyBalances = last6Months.map((item) => ({
+        month: item.month,
+        balance: item.balance || 0,
+      }));
 
-        // Calculate cumulative balance up to end of this month (or now for current month)
-        const cumulativeResult = await db
-          .select({
-            totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
-            totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
-          })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.accountId, account.id),
-              lte(transactions.transactionDate, monthEnd)
-            )
-          );
-
-        const totalDebits = parseFloat(cumulativeResult[0].totalDebits || "0");
-        const totalCredits = parseFloat(
-          cumulativeResult[0].totalCredits || "0"
-        );
-        const balance = totalCredits - totalDebits;
-
-        monthlyBalances.push({
-          month: monthKey,
-          balance: parseFloat(balance.toFixed(2)),
-        });
-
-        // Calculate monthly debit/credit amounts (for this month only)
-        const monthlyResult = await db
-          .select({
-            monthlyDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
-            monthlyCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
-          })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.accountId, account.id),
-              gte(transactions.transactionDate, monthStart),
-              lte(transactions.transactionDate, monthEnd)
-            )
-          );
-
-        const monthlyDebits = parseFloat(monthlyResult[0].monthlyDebits || "0");
-        const monthlyCredits = parseFloat(
-          monthlyResult[0].monthlyCredits || "0"
-        );
-
-        monthlyDebitCredit.push({
-          month: monthKey,
-          debits: parseFloat(monthlyDebits.toFixed(2)),
-          credits: parseFloat(monthlyCredits.toFixed(2)),
-        });
-      }
+      // Format for debit/credit chart (monthly amounts)
+      const monthlyDebitCredit = last6Months.map((item) => ({
+        month: item.month,
+        debits: item.debits || 0,
+        credits: item.credits || 0,
+      }));
 
       historicalData.push({
         accountId: account.id,
@@ -517,6 +422,83 @@ router.get("/:id/dashboard-data", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch dashboard data",
+    });
+  }
+});
+
+// POST /api/account-books/:id/recalculate-balances - Recalculate all account balances for an account book
+router.post("/:id/recalculate-balances", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify account book exists
+    const accountBook = await db
+      .select()
+      .from(accountBooks)
+      .where(eq(accountBooks.id, id))
+      .limit(1);
+
+    if (accountBook.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Account book not found",
+      });
+    }
+
+    // Get all accounts for this book
+    const bookAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.accountBookId, id));
+
+    logger.info("Recalculating balances for account book", {
+      accountBookId: id,
+      accountCount: bookAccounts.length,
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Recalculate balance for each account
+    for (const account of bookAccounts) {
+      try {
+        await updateAccountBalance(account.id);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        logger.error("Failed to update account balance", {
+          accountId: account.id,
+          error,
+        });
+      }
+    }
+
+    logger.info("Balance recalculation complete", {
+      accountBookId: id,
+      total: bookAccounts.length,
+      successful: successCount,
+      failed: errorCount,
+    });
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        message: "Balance recalculation complete",
+        total: bookAccounts.length,
+        successful: successCount,
+        failed: errorCount,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error recalculating balances", {
+      accountBookId: req.params.id,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to recalculate balances",
     });
   }
 });

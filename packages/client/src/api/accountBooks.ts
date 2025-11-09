@@ -384,4 +384,23 @@ export const accountBooksApi = {
   async deleteBudget(accountBookId: string, budgetId: string): Promise<void> {
     await apiClient.delete(`/api/account-books/${accountBookId}/budgets/${budgetId}`);
   },
+
+  // Recalculate balances for all accounts in an account book
+  async recalculateBalances(accountBookId: string): Promise<{
+    message: string;
+    total: number;
+    successful: number;
+    failed: number;
+  }> {
+    const response = await apiClient.post<ApiResponse<{
+      message: string;
+      total: number;
+      successful: number;
+      failed: number;
+    }>>(`/api/account-books/${accountBookId}/recalculate-balances`);
+    if (!response.data.data) {
+      throw new Error('No data returned from recalculate balances');
+    }
+    return response.data.data;
+  },
 };
