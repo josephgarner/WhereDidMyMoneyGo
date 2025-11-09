@@ -8,6 +8,7 @@ import { HomePage } from "./pages/HomePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AccountsPage } from "./pages/AccountsPage";
 import { RulesPage } from "./pages/RulesPage";
+import { BudgetsPage } from "./pages/BudgetsPage";
 import theme from "./theme";
 
 function App() {
@@ -47,6 +48,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <RulesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/account-books/:accountBookId/budgets"
+              element={
+                <ProtectedRoute>
+                  <BudgetsPage />
                 </ProtectedRoute>
               }
             />

@@ -86,6 +86,37 @@ export interface CreateRuleData {
   subCategory?: string;
 }
 
+export interface BudgetRule {
+  label: string;
+  accountId?: string;
+  kind: 'fixed' | 'percent';
+  amount: number;
+}
+
+export interface FlowBudget {
+  id: string;
+  name: string;
+  accountBookId: string;
+  incomeAccountId: string | null;
+  incomeAmount: string;
+  rules: BudgetRule[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateBudgetData {
+  name: string;
+  incomeAmount?: string;
+  incomeAccountId?: string;
+}
+
+export interface UpdateBudgetData {
+  name?: string;
+  incomeAmount?: string;
+  incomeAccountId?: string;
+  rules?: BudgetRule[];
+}
+
 export const accountBooksApi = {
   async getAllAccountBooks(): Promise<AccountBook[]> {
     const response = await apiClient.get<ApiResponse<AccountBook[]>>('/api/account-books');
@@ -300,5 +331,46 @@ export const accountBooksApi = {
       throw new Error('No data returned from apply rules');
     }
     return response.data.data;
+  },
+
+  // Budget API
+  async getBudgets(accountBookId: string): Promise<FlowBudget[]> {
+    const response = await apiClient.get<ApiResponse<FlowBudget[]>>(
+      `/api/account-books/${accountBookId}/budgets`
+    );
+    return response.data.data || [];
+  },
+
+  async createBudget(
+    accountBookId: string,
+    data: CreateBudgetData
+  ): Promise<FlowBudget> {
+    const response = await apiClient.post<ApiResponse<FlowBudget>>(
+      `/api/account-books/${accountBookId}/budgets`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from create budget');
+    }
+    return response.data.data;
+  },
+
+  async updateBudget(
+    accountBookId: string,
+    budgetId: string,
+    data: UpdateBudgetData
+  ): Promise<FlowBudget> {
+    const response = await apiClient.put<ApiResponse<FlowBudget>>(
+      `/api/account-books/${accountBookId}/budgets/${budgetId}`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from update budget');
+    }
+    return response.data.data;
+  },
+
+  async deleteBudget(accountBookId: string, budgetId: string): Promise<void> {
+    await apiClient.delete(`/api/account-books/${accountBookId}/budgets/${budgetId}`);
   },
 };

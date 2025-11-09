@@ -18,3 +18,5 @@ export { AccountBalanceChart } from './AccountBalanceChart';
 export type { AccountBalanceChartProps } from './AccountBalanceChart';
 export { MonthlyDebitCreditChart } from './MonthlyDebitCreditChart';
 export type { MonthlyDebitCreditChartProps } from './MonthlyDebitCreditChart';
+export { AddBudgetModal } from './AddBudgetModal';
+export type { AddBudgetModalProps } from './AddBudgetModal';

@@ -27,6 +27,7 @@ export function Nav() {
   const isDashboard = location.pathname.endsWith("/dashboard");
   const isAccountsPage = location.pathname.endsWith("/accounts");
   const isRulesPage = location.pathname.endsWith("/rules");
+  const isBudgetsPage = location.pathname.endsWith("/budgets");
 
   return (
     <Box bg="navy.800" borderBottom="1px" borderColor="navy.700" py={4}>
@@ -77,6 +78,16 @@ export function Nav() {
                   }
                 >
                   Rules
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isBudgetsPage ? "solid" : "ghost"}
+                  colorScheme="teal"
+                  onClick={() =>
+                    navigate(`/account-books/${accountBookId}/budgets`)
+                  }
+                >
+                  Budgets
                 </Button>
               </HStack>
             )}
