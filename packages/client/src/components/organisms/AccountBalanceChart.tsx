@@ -46,6 +46,15 @@ export function AccountBalanceChart({
         );
         setBalanceHistory(data);
       } catch (err: any) {
+        // If we get a 404, the selected account doesn't belong to this account book
+        // Reset to the first account in the list
+        if (err.response?.status === 404 && accounts.length > 0) {
+          console.warn(
+            "Selected account not found in this account book, resetting to first account"
+          );
+          onAccountChange(accounts[0].id);
+          return;
+        }
         setError(err.message || "Failed to fetch balance history");
         setBalanceHistory(null);
       } finally {
@@ -54,7 +63,7 @@ export function AccountBalanceChart({
     };
 
     fetchBalanceHistory();
-  }, [accountBookId, selectedAccountId]);
+  }, [accountBookId, selectedAccountId, accounts, onAccountChange]);
 
   if (accounts.length === 0) {
     return null;

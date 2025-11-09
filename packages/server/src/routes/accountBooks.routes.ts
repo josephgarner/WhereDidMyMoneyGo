@@ -1,9 +1,10 @@
-import { Router } from 'express';
-import { db, accountBooks, accounts, transactions } from '../db';
-import { eq, sql, and, lte, gte } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth.middleware';
-import { ApiResponse } from '@finances/shared';
-import { updateAccountBalance } from '../utils/accountBalances';
+import { Router } from "express";
+import { db, accountBooks, accounts, transactions } from "../db";
+import { eq, sql, and, lte, gte } from "drizzle-orm";
+import { requireAuth } from "../middleware/auth.middleware";
+import { ApiResponse } from "@finances/shared";
+import { updateAccountBalance } from "../utils/accountBalances";
+import { logger } from "../utils/logger";
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
 router.use(requireAuth);
 
 // GET /api/account-books - Get all account books
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const allAccountBooks = await db.select().from(accountBooks);
 
@@ -22,16 +23,16 @@ router.get('/', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching account books:', error);
+    logger.error("Error fetching account books", { error });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch account books',
+      error: "Failed to fetch account books",
     });
   }
 });
 
 // POST /api/account-books - Create a new account book
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { name } = req.body;
 
@@ -39,7 +40,7 @@ router.post('/', async (req, res) => {
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'Account book name is required',
+        error: "Account book name is required",
       });
     }
 
@@ -57,16 +58,125 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Error creating account book:', error);
+    logger.error("Error creating account book", { error });
     res.status(500).json({
       success: false,
-      error: 'Failed to create account book',
+      error: "Failed to create account book",
+    });
+  }
+});
+
+// GET /api/account-books/:id/accounts/:accountId/balance-history - Get 24-month balance history for a specific account
+// NOTE: This route must come BEFORE /:id/accounts to avoid route conflict
+router.get("/:id/accounts/:accountId/balance-history", async (req, res) => {
+  try {
+    const { id, accountId } = req.params;
+    logger.info("Balance history request", { accountBookId: id, accountId });
+
+    // Debug: Check if account exists at all
+    const accountById = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    logger.info("Account lookup by ID", {
+      accountId,
+      found: accountById.length > 0,
+      accountBookId: accountById[0]?.accountBookId,
+    });
+
+    // Verify account exists and belongs to this account book
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.id, accountId), eq(accounts.accountBookId, id)))
+      .limit(1);
+
+    if (account.length === 0) {
+      logger.warn("Account not found for balance history", {
+        accountBookId: id,
+        accountId,
+        accountExists: accountById.length > 0,
+        actualAccountBookId: accountById[0]?.accountBookId,
+      });
+      return res.status(404).json({
+        success: false,
+        error: "Account not found",
+      });
+    }
+
+    logger.info("Account found, calculating balance history", {
+      accountBookId: id,
+      accountId,
+      accountName: account[0].name,
+    });
+
+    // Calculate last 24 months
+    const now = new Date();
+    const monthlyBalances = [];
+
+    // For each of the last 24 months
+    for (let i = 23; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      // For the current month (i === 0), use current time; otherwise use month end
+      const monthEnd =
+        i === 0
+          ? now
+          : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const monthKey = `${monthDate.getFullYear()}-${String(
+        monthDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      // Calculate balance up to end of this month (or now for current month)
+      const result = await db
+        .select({
+          totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
+          totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.accountId, accountId),
+            lte(transactions.transactionDate, monthEnd)
+          )
+        );
+
+      const totalDebits = parseFloat(result[0].totalDebits || "0");
+      const totalCredits = parseFloat(result[0].totalCredits || "0");
+      const balance = totalCredits - totalDebits;
+
+      monthlyBalances.push({
+        month: monthKey,
+        balance: parseFloat(balance.toFixed(2)),
+      });
+    }
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        accountId: account[0].id,
+        accountName: account[0].name,
+        data: monthlyBalances,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching balance history", {
+      accountBookId: req.params.id,
+      accountId: req.params.accountId,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch balance history",
     });
   }
 });
 
 // GET /api/account-books/:id/accounts - Get all accounts for a specific account book
-router.get('/:id/accounts', async (req, res) => {
+router.get("/:id/accounts", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -80,7 +190,7 @@ router.get('/:id/accounts', async (req, res) => {
     if (accountBook.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Account book not found',
+        error: "Account book not found",
       });
     }
 
@@ -97,16 +207,19 @@ router.get('/:id/accounts', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching accounts:', error);
+    logger.error("Error fetching accounts", {
+      accountBookId: req.params.id,
+      error,
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch accounts',
+      error: "Failed to fetch accounts",
     });
   }
 });
 
 // DELETE /api/account-books/:id/accounts/:accountId - Delete an account
-router.delete('/:id/accounts/:accountId', async (req, res) => {
+router.delete("/:id/accounts/:accountId", async (req, res) => {
   try {
     const { id, accountId } = req.params;
 
@@ -120,14 +233,14 @@ router.delete('/:id/accounts/:accountId', async (req, res) => {
     if (account.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Account not found',
+        error: "Account not found",
       });
     }
 
     if (account[0].accountBookId !== id) {
       return res.status(403).json({
         success: false,
-        error: 'Account does not belong to this account book',
+        error: "Account does not belong to this account book",
       });
     }
 
@@ -136,21 +249,25 @@ router.delete('/:id/accounts/:accountId', async (req, res) => {
 
     const response: ApiResponse = {
       success: true,
-      data: { message: 'Account deleted successfully' },
+      data: { message: "Account deleted successfully" },
     };
 
     res.json(response);
   } catch (error) {
-    console.error('Error deleting account:', error);
+    logger.error("Error deleting account", {
+      accountBookId: req.params.id,
+      accountId: req.params.accountId,
+      error,
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to delete account',
+      error: "Failed to delete account",
     });
   }
 });
 
 // POST /api/account-books/:id/accounts - Create a new account for a specific account book
-router.post('/:id/accounts', async (req, res) => {
+router.post("/:id/accounts", async (req, res) => {
   try {
     const { id } = req.params;
     const { name, startingBalance } = req.body;
@@ -159,7 +276,7 @@ router.post('/:id/accounts', async (req, res) => {
     if (!name) {
       return res.status(400).json({
         success: false,
-        error: 'Account name is required',
+        error: "Account name is required",
       });
     }
 
@@ -173,7 +290,7 @@ router.post('/:id/accounts', async (req, res) => {
     if (accountBook.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Account book not found',
+        error: "Account book not found",
       });
     }
 
@@ -183,9 +300,9 @@ router.post('/:id/accounts', async (req, res) => {
       .values({
         name,
         accountBookId: id,
-        totalMonthlyBalance: '0',
-        totalMonthlyCredits: '0',
-        totalMonthlyDebits: '0',
+        totalMonthlyBalance: "0",
+        totalMonthlyCredits: "0",
+        totalMonthlyDebits: "0",
       })
       .returning();
 
@@ -198,11 +315,11 @@ router.post('/:id/accounts', async (req, res) => {
         accountId: newAccount[0].id,
         accountBookId: id,
         transactionDate: new Date(),
-        description: 'Starting Balance',
-        category: 'Opening Balance',
-        subCategory: '',
-        debitAmount: isPositive ? '0' : Math.abs(balanceAmount).toFixed(2),
-        creditAmount: isPositive ? balanceAmount.toFixed(2) : '0',
+        description: "Starting Balance",
+        category: "Opening Balance",
+        subCategory: "",
+        debitAmount: isPositive ? "0" : Math.abs(balanceAmount).toFixed(2),
+        creditAmount: isPositive ? balanceAmount.toFixed(2) : "0",
       });
 
       // Update account balance based on the transaction
@@ -230,91 +347,19 @@ router.post('/:id/accounts', async (req, res) => {
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Error creating account:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create account',
+    logger.error("Error creating account", {
+      accountBookId: req.params.id,
+      error,
     });
-  }
-});
-
-// GET /api/account-books/:id/accounts/:accountId/balance-history - Get 24-month balance history for a specific account
-router.get('/:id/accounts/:accountId/balance-history', async (req, res) => {
-  try {
-    const { id, accountId } = req.params;
-
-    // Verify account exists and belongs to this account book
-    const account = await db
-      .select()
-      .from(accounts)
-      .where(and(eq(accounts.id, accountId), eq(accounts.accountBookId, id)))
-      .limit(1);
-
-    if (account.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Account not found',
-      });
-    }
-
-    // Calculate last 24 months
-    const now = new Date();
-    const monthlyBalances = [];
-
-    // For each of the last 24 months
-    for (let i = 23; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      // For the current month (i === 0), use current time; otherwise use month end
-      const monthEnd = i === 0
-        ? now
-        : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-      const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
-
-      // Calculate balance up to end of this month (or now for current month)
-      const result = await db
-        .select({
-          totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
-          totalCredits: sql<string>`COALESCE(SUM(${transactions.creditAmount}::numeric), 0)`,
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.accountId, accountId),
-            lte(transactions.transactionDate, monthEnd)
-          )
-        );
-
-      const totalDebits = parseFloat(result[0].totalDebits || '0');
-      const totalCredits = parseFloat(result[0].totalCredits || '0');
-      const balance = totalCredits - totalDebits;
-
-      monthlyBalances.push({
-        month: monthKey,
-        balance: parseFloat(balance.toFixed(2)),
-      });
-    }
-
-    const response: ApiResponse = {
-      success: true,
-      data: {
-        accountId: account[0].id,
-        accountName: account[0].name,
-        data: monthlyBalances,
-      },
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error('Error fetching balance history:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch balance history',
+      error: "Failed to create account",
     });
   }
 });
 
 // GET /api/account-books/:id/dashboard-data - Get dashboard data including historical balances and recent transactions
-router.get('/:id/dashboard-data', async (req, res) => {
+router.get("/:id/dashboard-data", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -328,7 +373,7 @@ router.get('/:id/dashboard-data', async (req, res) => {
     if (accountBook.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Account book not found',
+        error: "Account book not found",
       });
     }
 
@@ -355,10 +400,20 @@ router.get('/:id/dashboard-data', async (req, res) => {
         const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
         // For the current month (i === 0), use current time; otherwise use month end
-        const monthEnd = i === 0
-          ? now
-          : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-        const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+        const monthEnd =
+          i === 0
+            ? now
+            : new Date(
+                now.getFullYear(),
+                now.getMonth() - i + 1,
+                0,
+                23,
+                59,
+                59
+              );
+        const monthKey = `${monthDate.getFullYear()}-${String(
+          monthDate.getMonth() + 1
+        ).padStart(2, "0")}`;
 
         // Calculate cumulative balance up to end of this month (or now for current month)
         const cumulativeResult = await db
@@ -374,8 +429,10 @@ router.get('/:id/dashboard-data', async (req, res) => {
             )
           );
 
-        const totalDebits = parseFloat(cumulativeResult[0].totalDebits || '0');
-        const totalCredits = parseFloat(cumulativeResult[0].totalCredits || '0');
+        const totalDebits = parseFloat(cumulativeResult[0].totalDebits || "0");
+        const totalCredits = parseFloat(
+          cumulativeResult[0].totalCredits || "0"
+        );
         const balance = totalCredits - totalDebits;
 
         monthlyBalances.push({
@@ -398,8 +455,10 @@ router.get('/:id/dashboard-data', async (req, res) => {
             )
           );
 
-        const monthlyDebits = parseFloat(monthlyResult[0].monthlyDebits || '0');
-        const monthlyCredits = parseFloat(monthlyResult[0].monthlyCredits || '0');
+        const monthlyDebits = parseFloat(monthlyResult[0].monthlyDebits || "0");
+        const monthlyCredits = parseFloat(
+          monthlyResult[0].monthlyCredits || "0"
+        );
 
         monthlyDebitCredit.push({
           month: monthKey,
@@ -451,10 +510,13 @@ router.get('/:id/dashboard-data', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    logger.error("Error fetching dashboard data", {
+      accountBookId: req.params.id,
+      error,
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch dashboard data',
+      error: "Failed to fetch dashboard data",
     });
   }
 });

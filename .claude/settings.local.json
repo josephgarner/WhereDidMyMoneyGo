@@ -4,7 +4,10 @@
       "Bash(npm run build:*)",
       "Bash(timeout 10 npm run dev:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(cat:*)",
+      "Bash($null)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
