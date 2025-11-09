@@ -26,12 +26,13 @@ services:
     container_name: finances-backend
     restart: unless-stopped
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
       DATABASE_URL: postgresql://finances_user:${DB_PASSWORD:-changeme}@postgres:5432/finances
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET}
+      AUTHENTIK_REDIRECT_URI: ${AUTHENTIK_REDIRECT_URI:-http://localhost:3001/auth/callback}
       SESSION_SECRET: ${SESSION_SECRET:-changeme-replace-in-production}
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
     ports:

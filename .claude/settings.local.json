@@ -7,7 +7,11 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash($null)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)"
     ],
     "deny": [],
     "ask": []

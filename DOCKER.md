@@ -30,7 +30,19 @@ This application uses Docker and Docker Compose to run the client, server, and P
    docker-compose up -d
    ```
 
-4. **View logs**
+   **Note**: On first startup, the backend will automatically initialize the database tables using `drizzle-kit push`. This may take a few seconds.
+
+4. **Verify database initialization**
+   ```bash
+   # Check backend logs for successful database initialization
+   docker-compose logs backend | grep "push"
+
+   # You should see:
+   # "✔ Pushing schema to database"
+   # "✓ Tables pushed to database"
+   ```
+
+5. **View logs**
    ```bash
    # All services
    docker-compose logs -f
@@ -41,7 +53,7 @@ This application uses Docker and Docker Compose to run the client, server, and P
    docker-compose logs -f postgres
    ```
 
-5. **Access the application**
+6. **Access the application**
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:3001
    - PostgreSQL: localhost:5432
@@ -82,6 +94,24 @@ docker-compose up -d --build frontend
 ```
 
 ## Troubleshooting
+
+### Database tables not created ("relation does not exist")
+
+**Error:** `PostgresError: relation "account_books" does not exist`
+
+**Cause:** Database tables haven't been initialized.
+
+**Solution:**
+```bash
+# Option 1: Restart backend (it will run db:push on startup)
+docker-compose restart backend
+
+# Option 2: Manually run database initialization
+docker-compose exec backend npm run db:push
+
+# Option 3: Rebuild backend container
+docker-compose up -d --build backend
+```
 
 ### Database connection issues
 ```bash

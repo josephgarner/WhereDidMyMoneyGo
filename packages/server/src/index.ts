@@ -43,11 +43,13 @@ async function startServer() {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: config.nodeEnv === 'production',
+      secure: false, // Set to true only when using HTTPS
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: config.nodeEnv === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax',
+      domain: undefined, // Don't set domain for localhost
     },
+    proxy: config.nodeEnv === 'production', // Trust proxy headers in production
   }));
 
   // Routes
