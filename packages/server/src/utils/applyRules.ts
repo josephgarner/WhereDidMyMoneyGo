@@ -32,15 +32,19 @@ export async function applyRulesToTransaction(
     // Find the first matching rule
     // Rules are checked in order, so first match wins
     for (const rule of rules) {
-      const keyword = rule.keyword.toLowerCase();
+      // Split keywords by comma and trim whitespace
+      const keywords = rule.keyword.split(',').map(k => k.trim().toLowerCase());
 
-      if (description.includes(keyword)) {
-        // Rule matched! Apply the category and subcategory from the rule
-        return {
-          ...transaction,
-          category: rule.category,
-          subCategory: rule.subCategory || '',
-        };
+      // Check if any of the keywords match
+      for (const keyword of keywords) {
+        if (keyword && description.includes(keyword)) {
+          // Rule matched! Apply the category and subcategory from the rule
+          return {
+            ...transaction,
+            category: rule.category,
+            subCategory: rule.subCategory || '',
+          };
+        }
       }
     }
 

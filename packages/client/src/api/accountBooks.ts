@@ -403,4 +403,16 @@ export const accountBooksApi = {
     }
     return response.data.data;
   },
+
+  // Get all categories and subcategories for an account book
+  async getCategories(accountBookId: string): Promise<{
+    category: string;
+    subCategories: string[];
+  }[]> {
+    const response = await apiClient.get<ApiResponse<{
+      category: string;
+      subCategories: string[];
+    }[]>>(`/api/account-books/${accountBookId}/categories`);
+    return response.data.data || [];
+  },
 };

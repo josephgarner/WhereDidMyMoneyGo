@@ -503,4 +503,69 @@ router.post("/:id/recalculate-balances", async (req, res) => {
   }
 });
 
+// GET /api/account-books/:id/categories - Get all distinct categories and subcategories for an account book
+router.get("/:id/categories", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify account book exists
+    const accountBook = await db
+      .select()
+      .from(accountBooks)
+      .where(eq(accountBooks.id, id))
+      .limit(1);
+
+    if (accountBook.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Account book not found",
+      });
+    }
+
+    // Get distinct categories and subcategories from all transactions in this account book
+    const result = await db
+      .selectDistinct({
+        category: transactions.category,
+        subCategory: transactions.subCategory,
+      })
+      .from(transactions)
+      .where(eq(transactions.accountBookId, id))
+      .orderBy(transactions.category, transactions.subCategory);
+
+    // Group by category with their subcategories
+    const categoriesMap = new Map<string, Set<string>>();
+
+    for (const row of result) {
+      if (!categoriesMap.has(row.category)) {
+        categoriesMap.set(row.category, new Set());
+      }
+      if (row.subCategory) {
+        categoriesMap.get(row.category)!.add(row.subCategory);
+      }
+    }
+
+    // Convert to array format
+    const categories = Array.from(categoriesMap.entries()).map(([category, subCategories]) => ({
+      category,
+      subCategories: Array.from(subCategories).sort(),
+    }));
+
+    const response: ApiResponse = {
+      success: true,
+      data: categories,
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching categories", {
+      accountBookId: req.params.id,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch categories",
+    });
+  }
+});
+
 export default router;
