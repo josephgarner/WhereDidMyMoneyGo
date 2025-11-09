@@ -43,7 +43,7 @@ async function startServer() {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to true only when using HTTPS
+      secure: config.nodeEnv === 'production', // Use secure cookies with HTTPS in production
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
