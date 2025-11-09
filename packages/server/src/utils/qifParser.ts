@@ -33,23 +33,32 @@ export interface QIFParseResult {
 
 /**
  * Parse a date from QIF format
- * QIF dates can be in various formats: MM/DD/YYYY, MM/DD/YY, M/D/YY, etc.
+ * QIF dates in Australian format: DD/MM/YYYY or DD/MM/YY
+ * This parser assumes Australian date format (day first)
  */
 function parseQIFDate(dateString: string): Date {
   // Remove any extra whitespace
   dateString = dateString.trim();
 
   // Handle various date formats
-  // Try MM/DD/YYYY or M/D/YYYY or MM/DD/YY
+  // Australian format: DD/MM/YYYY or D/M/YY
   const parts = dateString.split('/');
   if (parts.length === 3) {
-    let month = parseInt(parts[0], 10);
-    let day = parseInt(parts[1], 10);
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10);
     let year = parseInt(parts[2], 10);
 
     // Handle 2-digit years
     if (year < 100) {
       year += year < 50 ? 2000 : 1900;
+    }
+
+    // Validate day and month ranges
+    if (day < 1 || day > 31) {
+      throw new Error(`Invalid day: ${day} in date ${dateString}`);
+    }
+    if (month < 1 || month > 12) {
+      throw new Error(`Invalid month: ${month} in date ${dateString}`);
     }
 
     return new Date(year, month - 1, day);
@@ -148,16 +157,22 @@ export function parseQIFFile(content: string): QIFParseResult {
         case '^': // End of transaction
           transactionNumber++;
 
-          // Validate required fields
+          // Validate required fields (only D, P, T are required)
           if (!currentTransaction.transactionDate) {
-            errors.push(`Transaction ${transactionNumber}: Missing date`);
+            errors.push(`Transaction ${transactionNumber}: Missing date (D)`);
           } else if (!currentTransaction.description) {
-            errors.push(`Transaction ${transactionNumber}: Missing description`);
+            errors.push(`Transaction ${transactionNumber}: Missing description (P)`);
           } else if (!currentTransaction.debitAmount && !currentTransaction.creditAmount) {
-            errors.push(`Transaction ${transactionNumber}: Missing amount`);
-          } else if (!currentTransaction.category) {
-            errors.push(`Transaction ${transactionNumber}: Missing category`);
+            errors.push(`Transaction ${transactionNumber}: Missing amount (T)`);
           } else {
+            // Set defaults for optional fields
+            if (!currentTransaction.category) {
+              currentTransaction.category = 'Uncategorized';
+            }
+            if (!currentTransaction.subCategory) {
+              currentTransaction.subCategory = '';
+            }
+
             // Transaction is valid, add it
             transactions.push(currentTransaction as ParsedQIFTransaction);
           }

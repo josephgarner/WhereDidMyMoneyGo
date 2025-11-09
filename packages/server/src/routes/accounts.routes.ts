@@ -7,6 +7,7 @@ import multer from 'multer';
 import { parseQIFFile } from '../utils/qifParser';
 import { updateAccountBalance } from '../utils/accountBalances';
 import { applyRulesToTransaction } from '../utils/applyRules';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -69,7 +70,7 @@ router.get('/:accountId/categories', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    logger.error('Error fetching categories', { accountId: req.params.accountId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch categories',
@@ -124,7 +125,7 @@ router.get('/:accountId/transactions/metadata', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching transaction metadata:', error);
+    logger.error('Error fetching transaction metadata', { accountId: req.params.accountId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch transaction metadata',
@@ -205,7 +206,7 @@ router.get('/:accountId/transactions', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    logger.error('Error fetching transactions', { accountId: req.params.accountId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch transactions',
@@ -283,7 +284,7 @@ router.post('/:accountId/transactions', async (req, res) => {
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Error creating transaction:', error);
+    logger.error('Error creating transaction', { accountId: req.params.accountId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to create transaction',
@@ -295,6 +296,7 @@ router.post('/:accountId/transactions', async (req, res) => {
 router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), async (req, res) => {
   try {
     const { accountId } = req.params;
+    logger.info('QIF file upload started', { accountId, fileName: req.file?.originalname });
 
     // Verify account exists and get account book ID
     const account = await db
@@ -304,6 +306,7 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
       .limit(1);
 
     if (account.length === 0) {
+      logger.warn('QIF upload failed: Account not found', { accountId });
       return res.status(404).json({
         success: false,
         error: 'Account not found',
@@ -312,6 +315,7 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
 
     // Check if file was uploaded
     if (!req.file) {
+      logger.warn('QIF upload failed: No file uploaded', { accountId });
       return res.status(400).json({
         success: false,
         error: 'No file uploaded',
@@ -320,10 +324,21 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
 
     // Parse the QIF file
     const fileContent = req.file.buffer.toString('utf-8');
+    logger.info('Parsing QIF file', { accountId, fileSize: req.file.size, fileName: req.file.originalname });
     const parseResult = parseQIFFile(fileContent);
+
+    logger.info('QIF parsing complete', {
+      accountId,
+      transactionsFound: parseResult.transactions.length,
+      parseErrors: parseResult.errors.length,
+    });
 
     // If there are parse errors and no transactions, return error
     if (parseResult.transactions.length === 0 && parseResult.errors.length > 0) {
+      logger.error('QIF parsing failed: No valid transactions', {
+        accountId,
+        errors: parseResult.errors,
+      });
       return res.status(400).json({
         success: false,
         error: 'Failed to parse QIF file',
@@ -331,9 +346,21 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
       });
     }
 
+    if (parseResult.errors.length > 0) {
+      logger.warn('QIF parsing completed with errors', {
+        accountId,
+        errors: parseResult.errors,
+      });
+    }
+
     // Insert all valid transactions (with rules applied)
     const insertedTransactions = [];
     const insertErrors: string[] = [];
+
+    logger.info('Starting transaction import', {
+      accountId,
+      transactionsToImport: parseResult.transactions.length,
+    });
 
     for (const transaction of parseResult.transactions) {
       try {
@@ -363,14 +390,29 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
 
         insertedTransactions.push(newTransaction[0]);
       } catch (error: any) {
-        insertErrors.push(`Failed to insert transaction "${transaction.description}": ${error.message}`);
+        const errorMsg = `Failed to insert transaction "${transaction.description}": ${error.message}`;
+        insertErrors.push(errorMsg);
+        logger.error('Transaction insert failed', {
+          accountId,
+          transaction: transaction.description,
+          error: error.message,
+          stack: error.stack,
+        });
       }
     }
 
     // Update account balance after importing all transactions
     if (insertedTransactions.length > 0) {
+      logger.info('Updating account balance', { accountId, transactionsImported: insertedTransactions.length });
       await updateAccountBalance(accountId);
     }
+
+    logger.info('QIF import complete', {
+      accountId,
+      imported: insertedTransactions.length,
+      failed: insertErrors.length,
+      parseErrors: parseResult.errors.length,
+    });
 
     // Return results
     const response: ApiResponse = {
@@ -390,7 +432,11 @@ router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), asy
 
     res.status(201).json(response);
   } catch (error: any) {
-    console.error('Error uploading QIF file:', error);
+    logger.error('QIF upload error', {
+      accountId: req.params.accountId,
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to upload QIF file',
@@ -465,7 +511,7 @@ router.put('/:accountId/transactions/:transactionId', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error updating transaction:', error);
+    logger.error('Error updating transaction', { accountId: req.params.accountId, transactionId: req.params.transactionId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to update transaction',
@@ -512,7 +558,7 @@ router.delete('/:accountId/transactions/:transactionId', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error deleting transaction:', error);
+    logger.error('Error deleting transaction', { accountId: req.params.accountId, transactionId: req.params.transactionId, error });
     res.status(500).json({
       success: false,
       error: 'Failed to delete transaction',
@@ -577,7 +623,7 @@ router.delete('/:accountId/transactions/bulk/by-month', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error deleting transactions by month:', error);
+    logger.error('Error deleting transactions by month', { accountId: req.params.accountId, month: req.query.month, error });
     res.status(500).json({
       success: false,
       error: 'Failed to delete transactions',

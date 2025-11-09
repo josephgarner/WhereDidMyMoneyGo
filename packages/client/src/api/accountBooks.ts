@@ -123,6 +123,17 @@ export const accountBooksApi = {
     return response.data.data || [];
   },
 
+  async createAccountBook(name: string): Promise<AccountBook> {
+    const response = await apiClient.post<ApiResponse<AccountBook>>(
+      '/api/account-books',
+      { name }
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from create account book');
+    }
+    return response.data.data;
+  },
+
   async getDashboardData(accountBookId: string): Promise<DashboardData> {
     const response = await apiClient.get<ApiResponse<DashboardData>>(
       `/api/account-books/${accountBookId}/dashboard-data`

@@ -30,6 +30,41 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/account-books - Create a new account book
+router.post('/', async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    // Validate required fields
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Account book name is required',
+      });
+    }
+
+    const newAccountBook = await db
+      .insert(accountBooks)
+      .values({
+        name: name.trim(),
+      })
+      .returning();
+
+    const response: ApiResponse = {
+      success: true,
+      data: newAccountBook[0],
+    };
+
+    res.status(201).json(response);
+  } catch (error) {
+    console.error('Error creating account book:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create account book',
+    });
+  }
+});
+
 // GET /api/account-books/:id/accounts - Get all accounts for a specific account book
 router.get('/:id/accounts', async (req, res) => {
   try {
@@ -229,10 +264,13 @@ router.get('/:id/accounts/:accountId/balance-history', async (req, res) => {
     // For each of the last 24 months
     for (let i = 23; i >= 0; i--) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      // For the current month (i === 0), use current time; otherwise use month end
+      const monthEnd = i === 0
+        ? now
+        : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
       const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
 
-      // Calculate balance up to end of this month
+      // Calculate balance up to end of this month (or now for current month)
       const result = await db
         .select({
           totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
@@ -316,10 +354,13 @@ router.get('/:id/dashboard-data', async (req, res) => {
       for (let i = 5; i >= 0; i--) {
         const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+        // For the current month (i === 0), use current time; otherwise use month end
+        const monthEnd = i === 0
+          ? now
+          : new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
         const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
 
-        // Calculate cumulative balance up to end of this month
+        // Calculate cumulative balance up to end of this month (or now for current month)
         const cumulativeResult = await db
           .select({
             totalDebits: sql<string>`COALESCE(SUM(${transactions.debitAmount}::numeric), 0)`,
