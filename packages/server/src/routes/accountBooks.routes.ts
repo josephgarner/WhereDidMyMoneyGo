@@ -568,4 +568,62 @@ router.get("/:id/categories", async (req, res) => {
   }
 });
 
+// GET /api/account-books/:id/reports - Get report data for an account book
+router.get("/:id/reports", async (req, res) => {
+  try {
+    const { id: accountBookId } = req.params;
+    const { accountIds, categories } = req.query;
+
+    // Build where conditions
+    const conditions = [eq(transactions.accountBookId, accountBookId)];
+
+    // Filter by account IDs if provided
+    if (accountIds) {
+      const accountIdArray = Array.isArray(accountIds) ? accountIds : [accountIds];
+      if (accountIdArray.length > 0) {
+        conditions.push(
+          sql`${transactions.accountId} IN (${sql.join(accountIdArray.map(id => sql`${id}`), sql`, `)})`
+        );
+      }
+    }
+
+    // Filter by categories if provided
+    if (categories) {
+      const categoryArray = Array.isArray(categories) ? categories : [categories];
+      if (categoryArray.length > 0) {
+        conditions.push(
+          sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
+        );
+      }
+    }
+
+    // Get monthly totals (sum of debits and credits)
+    const result = await db
+      .select({
+        month: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
+        total: sql<number>`SUM(CAST(${transactions.debitAmount} AS DECIMAL) + CAST(${transactions.creditAmount} AS DECIMAL))`,
+      })
+      .from(transactions)
+      .where(and(...conditions))
+      .groupBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`)
+      .orderBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
+
+    const response: ApiResponse = {
+      success: true,
+      data: result,
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching report data", {
+      accountBookId: req.params.id,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch report data",
+    });
+  }
+});
+
 export default router;

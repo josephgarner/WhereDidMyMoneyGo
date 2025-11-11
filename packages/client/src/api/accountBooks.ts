@@ -62,6 +62,16 @@ export interface TransactionFilters {
   limit?: number;
 }
 
+export interface ReportFilters {
+  accountIds?: string[];
+  categories?: string[];
+}
+
+export interface MonthlyReportData {
+  month: string;
+  total: number;
+}
+
 export interface TransactionsResult {
   transactions: Transaction[];
   pagination: PaginationMeta | null;
@@ -418,6 +428,28 @@ export const accountBooksApi = {
       category: string;
       subCategories: string[];
     }[]>>(`/api/account-books/${accountBookId}/categories`);
+    return response.data.data || [];
+  },
+
+  // Get report data for an account book with filters
+  async getReportData(
+    accountBookId: string,
+    filters?: ReportFilters
+  ): Promise<MonthlyReportData[]> {
+    const params = new URLSearchParams();
+
+    if (filters?.accountIds && filters.accountIds.length > 0) {
+      filters.accountIds.forEach(id => params.append('accountIds', id));
+    }
+
+    if (filters?.categories && filters.categories.length > 0) {
+      filters.categories.forEach(cat => params.append('categories', cat));
+    }
+
+    const queryString = params.toString();
+    const url = `/api/account-books/${accountBookId}/reports${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiClient.get<ApiResponse<MonthlyReportData[]>>(url);
     return response.data.data || [];
   },
 };
