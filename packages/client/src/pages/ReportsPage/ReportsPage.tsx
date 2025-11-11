@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -13,10 +13,26 @@ import {
   Stack,
   Grid,
   GridItem,
+  FormControl,
+  FormLabel,
+  Input,
+  HStack,
 } from "@chakra-ui/react";
 import { ResponsiveBar } from "@nivo/bar";
 import { useAccounts } from "../../hooks";
 import { accountBooksApi, MonthlyReportData, ReportFilters } from "../../api";
+
+// Helper function to get date 6 months ago
+const getSixMonthsAgo = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 6);
+  return date.toISOString().split('T')[0];
+};
+
+// Helper function to get today's date
+const getToday = () => {
+  return new Date().toISOString().split('T')[0];
+};
 
 export function ReportsPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
@@ -29,6 +45,8 @@ export function ReportsPage() {
 
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<string>(getSixMonthsAgo());
+  const [endDate, setEndDate] = useState<string>(getToday());
   const [categories, setCategories] = useState<string[]>([]);
   const [reportData, setReportData] = useState<MonthlyReportData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,6 +85,12 @@ export function ReportsPage() {
         if (selectedCategories.length > 0) {
           filters.categories = selectedCategories;
         }
+        if (startDate) {
+          filters.startDate = startDate;
+        }
+        if (endDate) {
+          filters.endDate = endDate;
+        }
 
         const data = await accountBooksApi.getReportData(accountBookId, filters);
         setReportData(data);
@@ -79,12 +103,53 @@ export function ReportsPage() {
     };
 
     fetchReportData();
-  }, [accountBookId, selectedAccountIds, selectedCategories]);
+  }, [accountBookId, selectedAccountIds, selectedCategories, startDate, endDate]);
+
+  // Calculate linear regression for trend line
+  const trendLineData = useMemo(() => {
+    if (reportData.length < 2) return [];
+
+    // Calculate linear regression using least squares method
+    const n = reportData.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+
+    reportData.forEach((item, index) => {
+      const x = index;
+      const y = Number(item.total) || 0;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    });
+
+    const denominator = (n * sumXX - sumX * sumX);
+
+    // Avoid division by zero
+    if (denominator === 0) {
+      const avgY = sumY / n;
+      return reportData.map((item) => ({
+        month: item.month,
+        trend: avgY,
+      }));
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
+    const intercept = (sumY - slope * sumX) / n;
+
+    return reportData.map((item, index) => ({
+      month: item.month,
+      trend: slope * index + intercept,
+    }));
+  }, [reportData]);
 
   // Transform data for the chart
-  const chartData = reportData.map((item) => ({
+  const chartData = reportData.map((item, index) => ({
     month: item.month,
     total: item.total,
+    trend: trendLineData[index]?.trend || 0,
   }));
 
   const handleAccountChange = (values: string[]) => {
@@ -160,6 +225,48 @@ export function ReportsPage() {
                       </Stack>
                     </CheckboxGroup>
                   )}
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Date Range Filter */}
+            <Card>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Heading size="sm" color="cream.100">
+                    Date Range
+                  </Heading>
+                  <FormControl>
+                    <FormLabel color="cream.300" fontSize="sm">
+                      Start Date
+                    </FormLabel>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      size="sm"
+                      bg="navy.900"
+                      borderColor="navy.700"
+                      color="cream.100"
+                      _hover={{ borderColor: "teal.500" }}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel color="cream.300" fontSize="sm">
+                      End Date
+                    </FormLabel>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate}
+                      size="sm"
+                      bg="navy.900"
+                      borderColor="navy.700"
+                      color="cream.100"
+                      _hover={{ borderColor: "teal.500" }}
+                    />
+                  </FormControl>
                 </VStack>
               </CardBody>
             </Card>
@@ -249,6 +356,60 @@ export function ReportsPage() {
                       valueScale={{ type: "linear" }}
                       indexScale={{ type: "band", round: true }}
                       colors={{ scheme: "nivo" }}
+                      layers={[
+                        'grid',
+                        'axes',
+                        'bars',
+                        'markers',
+                        // Custom trend line layer
+                        ({ bars, yScale, innerHeight }) => {
+                          if (chartData.length < 2) return null;
+
+                          const linePoints = bars.map((bar, i) => {
+                            const dataPoint = chartData.find(d => d.month === bar.data.indexValue);
+                            if (!dataPoint || dataPoint.trend === undefined) return null;
+
+                            // Use the yScale with the trend value
+                            const y = yScale(dataPoint.trend);
+
+                            return {
+                              x: bar.x + bar.width / 2,
+                              y: y,
+                            };
+                          }).filter(p => p !== null && !isNaN(p.y));
+
+                          if (linePoints.length < 2) return null;
+
+                          const pathData = linePoints
+                            .map((point, i) => `${i === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+                            .join(' ');
+
+                          return (
+                            <g>
+                              <path
+                                d={pathData}
+                                fill="none"
+                                stroke="#ff6b6b"
+                                strokeWidth={3}
+                                strokeDasharray="8,4"
+                              />
+                              {linePoints.map((point, i) => (
+                                <circle
+                                  key={i}
+                                  cx={point.x}
+                                  cy={point.y}
+                                  r={4}
+                                  fill="#ff6b6b"
+                                  stroke="#ffffff"
+                                  strokeWidth={1}
+                                />
+                              ))}
+                            </g>
+                          );
+                        },
+                        'legends',
+                        'annotations',
+                      ]}
                       theme={{
                         axis: {
                           ticks: {

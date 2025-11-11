@@ -65,6 +65,8 @@ export interface TransactionFilters {
 export interface ReportFilters {
   accountIds?: string[];
   categories?: string[];
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
 }
 
 export interface MonthlyReportData {
@@ -444,6 +446,14 @@ export const accountBooksApi = {
 
     if (filters?.categories && filters.categories.length > 0) {
       filters.categories.forEach(cat => params.append('categories', cat));
+    }
+
+    if (filters?.startDate) {
+      params.append('startDate', filters.startDate);
+    }
+
+    if (filters?.endDate) {
+      params.append('endDate', filters.endDate);
     }
 
     const queryString = params.toString();

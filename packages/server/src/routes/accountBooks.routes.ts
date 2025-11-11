@@ -572,7 +572,7 @@ router.get("/:id/categories", async (req, res) => {
 router.get("/:id/reports", async (req, res) => {
   try {
     const { id: accountBookId } = req.params;
-    const { accountIds, categories } = req.query;
+    const { accountIds, categories, startDate, endDate } = req.query;
 
     // Build where conditions
     const conditions = [eq(transactions.accountBookId, accountBookId)];
@@ -595,6 +595,14 @@ router.get("/:id/reports", async (req, res) => {
           sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
         );
       }
+    }
+
+    // Filter by date range if provided
+    if (startDate && typeof startDate === 'string') {
+      conditions.push(gte(transactions.transactionDate, new Date(startDate)));
+    }
+    if (endDate && typeof endDate === 'string') {
+      conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
     }
 
     // Get monthly totals (sum of debits and credits)
