@@ -16,6 +16,7 @@ import {
   useToast,
   FormHelperText,
   Select,
+  Textarea,
 } from "@chakra-ui/react";
 import { accountBooksApi, CreateRuleData } from "../../api";
 
@@ -167,16 +168,18 @@ export function AddRuleModal({
                 <FormLabel color="cream.300" fontSize="sm">
                   Keyword
                 </FormLabel>
-                <Input
+                <Textarea
                   value={formData.keyword}
                   onChange={(e) => handleChange("keyword", e.target.value)}
                   placeholder="e.g., Starbucks, Shell, Amazon"
+                  rows={2}
                   size="sm"
                   bg="navy.900"
                   borderColor="navy.700"
                   color="cream.100"
                   _hover={{ borderColor: "teal.500" }}
                   _placeholder={{ color: "cream.500" }}
+                  resize="vertical"
                 />
                 <FormHelperText color="cream.500" fontSize="xs">
                   Separate multiple keywords with commas (e.g., "Starbucks, Coffee Shop, Cafe")

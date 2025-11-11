@@ -601,16 +601,179 @@ LTransportation:Fuel
 [... more transactions ...]
 ```
 
+## Recent Updates
+
+### Category Rules Enhancement
+**Date**: Latest session
+
+**Features Added**:
+1. **Multiple Keywords Support**: Category rules now accept comma-separated keywords
+   - File: `packages/server/src/utils/applyRules.ts`
+   - Keywords are split by comma and each is checked individually
+   - Example: "Starbucks, Coffee Shop, Cafe" will match any of these terms
+
+2. **Category/Subcategory Dropdowns**: Replaced text inputs with dropdowns showing existing values
+   - File: `packages/client/src/components/organisms/AddRuleModal.tsx`
+   - New endpoint: GET `/api/account-books/:id/categories`
+   - Returns grouped categories with their subcategories
+   - "Create New" option available in both dropdowns
+   - Dynamic subcategory list based on selected category
+
+### Docker Configuration
+**Date**: Latest session
+
+**Files Updated**:
+- `packages/server/Dockerfile`
+- `packages/client/Dockerfile`
+- `docker-compose.yml`
+- Created: `DOCKER.md` (comprehensive setup guide)
+- Created: `AUTHENTICATION.md` (OAuth troubleshooting guide)
+
+**Key Changes**:
+1. **Backend (Server)**:
+   - Multi-stage build with builder and production stages
+   - Handles monorepo workspace structure
+   - Database initialization with `drizzle-kit push --force` on startup
+   - Runs from root directory to access node_modules
+   - Port: 3001
+   - CMD: `cd /app && npm run db:push --workspace=@finances/server && cd /app/packages/server && npm start`
+
+2. **Frontend (Client)**:
+   - Uses Vite dev server (not nginx)
+   - Hot reload with volume mounts for src directories
+   - Port: 5173
+   - Environment-based configuration with `VITE_API_URL`
+
+3. **Docker Compose**:
+   - Three services: postgres, backend, frontend
+   - Persistent volume for PostgreSQL data (`postgres_data`)
+   - Environment variable support via `.env`
+   - Health checks and service dependencies
+
+**Important Configuration**:
+- Database tables are automatically initialized on first startup
+- Data persists in Docker volumes (safe across container rebuilds)
+- Only `docker-compose down -v` will delete database data
+
+### Authentication Configuration
+**Date**: Latest session
+
+**OAuth2/OIDC with Authentik**:
+- Implementation: PKCE (Proof Key for Code Exchange)
+- Session management: `express-session` with cookies
+
+**Session Cookie Settings**:
+File: `packages/server/src/index.ts:46`
+```typescript
+cookie: {
+  secure: config.nodeEnv === 'production', // Dynamic based on environment
+  httpOnly: true,
+  maxAge: 24 * 60 * 60 * 1000,
+  sameSite: 'lax',
+  domain: undefined,
+}
+```
+
+**Environment Variables Required**:
+```bash
+# Development
+CLIENT_URL=http://localhost:5173
+AUTHENTIK_REDIRECT_URI=http://localhost:3001/auth/callback
+NODE_ENV=development
+
+# Production
+CLIENT_URL=https://financev2.hermes-lab.com
+AUTHENTIK_REDIRECT_URI=https://finance.api.hermes-lab.com/auth/callback
+NODE_ENV=production
+```
+
+**CORS Configuration**:
+File: `packages/server/src/index.ts:34-37`
+```typescript
+app.use(cors({
+  origin: config.clientUrl, // From CLIENT_URL env var
+  credentials: true,
+}));
+```
+
+### Database Initialization
+**Date**: Latest session
+
+**Drizzle Kit Integration**:
+- Added `drizzle-kit` to production dependencies
+- Created `packages/server/drizzle.config.ts`
+- Added scripts:
+  - `db:push`: Pushes schema to database (with `--force` flag for non-interactive)
+  - `db:studio`: Opens Drizzle Studio
+
+**Automatic Schema Push**:
+- Docker container runs `npm run db:push` on startup
+- Creates all tables if they don't exist
+- Non-destructive: Won't delete existing data
+- Runs from root directory to access workspace dependencies
+
+### Production Deployment
+**Date**: Latest session
+
+**Production URLs**:
+- Frontend: `https://financev2.hermes-lab.com`
+- Backend API: `https://finance.api.hermes-lab.com`
+
+**Environment Configuration**:
+
+**Frontend (.env)**:
+```bash
+VITE_API_URL=https://finance.api.hermes-lab.com
+```
+
+**Backend (.env)**:
+```bash
+NODE_ENV=production
+CLIENT_URL=https://financev2.hermes-lab.com
+AUTHENTIK_REDIRECT_URI=https://finance.api.hermes-lab.com/auth/callback
+DATABASE_URL=postgresql://user:password@host:5432/finances
+SESSION_SECRET=your_32_character_minimum_secret
+AUTHENTIK_ISSUER=https://your-authentik.com/application/o/app/
+AUTHENTIK_CLIENT_ID=your_client_id
+AUTHENTIK_CLIENT_SECRET=your_client_secret
+```
+
+**Important Notes**:
+1. CORS errors in production are usually due to missing `CLIENT_URL` environment variable
+2. Session cookies automatically use `secure: true` in production (requires HTTPS)
+3. Frontend uses `VITE_API_URL` for API calls (no proxy in production)
+4. Vite config `allowedHosts` includes production domain: `financev2.hermes-lab.com`
+
+### Troubleshooting
+
+**CORS Errors in Production**:
+- Ensure `CLIENT_URL` is set to frontend URL
+- Verify `VITE_API_URL` points to backend API
+- Restart containers after environment variable changes
+
+**Database Not Initialized**:
+- Check backend logs for `db:push` output
+- Verify drizzle-kit runs successfully on startup
+- Can manually run: `docker-compose exec backend npm run db:push`
+
+**Authentication Issues**:
+- Verify `AUTHENTIK_REDIRECT_URI` matches Authentik configuration exactly
+- Check session cookies are being set (DevTools → Application → Cookies)
+- Ensure `SESSION_SECRET` is at least 32 characters
+- For HTTPS issues, verify `NODE_ENV=production` is set
+
 ## Session Summary
 
-This session involved building out a comprehensive financial management application with:
+This application is a comprehensive financial management system with:
 - Complete CRUD operations for accounts and transactions
-- QIF file import functionality
-- Dashboard with visualizations
+- QIF file import functionality with category rule auto-assignment
+- Dashboard with balance visualizations
 - Advanced filtering and pagination
-- Delete operations with confirmations
+- Docker-based deployment with automatic database initialization
+- OAuth2/OIDC authentication via Authentik
+- Production-ready configuration with HTTPS support
 - Real-time balance calculations
 - Responsive UI with dark theme
 - Proper error handling and user feedback
 
-All code follows TypeScript best practices, React hooks patterns, and atomic design methodology. The application is production-ready with proper authentication, validation, and security measures.
+All code follows TypeScript best practices, React hooks patterns, and atomic design methodology. The application includes comprehensive documentation for Docker deployment and authentication troubleshooting.
