@@ -26,12 +26,12 @@ import { accountBooksApi, MonthlyReportData, ReportFilters } from "../../api";
 const getSixMonthsAgo = () => {
   const date = new Date();
   date.setMonth(date.getMonth() - 6);
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
 // Helper function to get today's date
 const getToday = () => {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split("T")[0];
 };
 
 export function ReportsPage() {
@@ -59,7 +59,7 @@ export function ReportsPage() {
     const fetchCategories = async () => {
       try {
         const categoryData = await accountBooksApi.getCategories(accountBookId);
-        const categoryList = categoryData.map(c => c.category).sort();
+        const categoryList = categoryData.map((c) => c.category).sort();
         setCategories(categoryList);
       } catch (err: any) {
         console.error("Error fetching categories:", err);
@@ -92,7 +92,10 @@ export function ReportsPage() {
           filters.endDate = endDate;
         }
 
-        const data = await accountBooksApi.getReportData(accountBookId, filters);
+        const data = await accountBooksApi.getReportData(
+          accountBookId,
+          filters
+        );
         setReportData(data);
       } catch (err: any) {
         setError(err.message || "Failed to fetch report data");
@@ -103,7 +106,13 @@ export function ReportsPage() {
     };
 
     fetchReportData();
-  }, [accountBookId, selectedAccountIds, selectedCategories, startDate, endDate]);
+  }, [
+    accountBookId,
+    selectedAccountIds,
+    selectedCategories,
+    startDate,
+    endDate,
+  ]);
 
   // Calculate linear regression for trend line
   const trendLineData = useMemo(() => {
@@ -125,7 +134,7 @@ export function ReportsPage() {
       sumXX += x * x;
     });
 
-    const denominator = (n * sumXX - sumX * sumX);
+    const denominator = n * sumXX - sumX * sumX;
 
     // Avoid division by zero
     if (denominator === 0) {
@@ -342,12 +351,14 @@ export function ReportsPage() {
                     minH="400px"
                   >
                     <Text color="cream.400">
-                      No data available. Select accounts and/or categories to view report.
+                      No data available. Select accounts and/or categories to
+                      view report.
                     </Text>
                   </Box>
                 ) : (
                   <Box height="450px">
                     <ResponsiveBar
+                      layout="vertical"
                       data={chartData}
                       keys={["total"]}
                       indexBy="month"
@@ -357,32 +368,40 @@ export function ReportsPage() {
                       indexScale={{ type: "band", round: true }}
                       colors={{ scheme: "nivo" }}
                       layers={[
-                        'grid',
-                        'axes',
-                        'bars',
-                        'markers',
+                        "grid",
+                        "axes",
+                        "bars",
+                        "markers",
                         // Custom trend line layer
                         ({ bars, yScale, innerHeight }) => {
                           if (chartData.length < 2) return null;
 
-                          const linePoints = bars.map((bar, i) => {
-                            const dataPoint = chartData.find(d => d.month === bar.data.indexValue);
-                            if (!dataPoint || dataPoint.trend === undefined) return null;
+                          const linePoints = bars
+                            .map((bar, i) => {
+                              const dataPoint = chartData.find(
+                                (d) => d.month === bar.data.indexValue
+                              );
+                              if (!dataPoint || dataPoint.trend === undefined)
+                                return null;
 
-                            // Use the yScale with the trend value
-                            const y = yScale(dataPoint.trend);
+                              // Use the yScale with the trend value
+                              const y = yScale(dataPoint.trend);
 
-                            return {
-                              x: bar.x + bar.width / 2,
-                              y: y,
-                            };
-                          }).filter(p => p !== null && !isNaN(p.y));
+                              return {
+                                x: bar.x + bar.width / 2,
+                                y: y,
+                              };
+                            })
+                            .filter((p) => p !== null && !isNaN(p.y));
 
                           if (linePoints.length < 2) return null;
 
                           const pathData = linePoints
-                            .map((point, i) => `${i === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-                            .join(' ');
+                            .map(
+                              (point, i) =>
+                                `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`
+                            )
+                            .join(" ");
 
                           return (
                             <g>
@@ -407,8 +426,8 @@ export function ReportsPage() {
                             </g>
                           );
                         },
-                        'legends',
-                        'annotations',
+                        "legends",
+                        "annotations",
                       ]}
                       theme={{
                         axis: {
@@ -475,6 +494,16 @@ export function ReportsPage() {
                       labelTextColor={{
                         from: "color",
                         modifiers: [["darker", 1.6]],
+                      }}
+                      animate={true}
+                      motionConfig={{
+                        mass: 1,
+                        tension: 170,
+                        friction: 26,
+                        clamp: false,
+                      }}
+                      initial={{
+                        scaleY: 0,
                       }}
                       role="application"
                       ariaLabel="Monthly transaction totals bar chart"
