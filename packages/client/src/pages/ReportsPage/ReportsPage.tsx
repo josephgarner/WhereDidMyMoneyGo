@@ -202,11 +202,11 @@ export function ReportsPage() {
 
       <Grid templateColumns={{ base: "1fr", lg: "300px 1fr" }} gap={4}>
         <GridItem>
-          <VStack spacing={4} align="stretch">
+          <VStack spacing={2} align="stretch">
             {/* Account Filter */}
             <Card>
               <CardBody>
-                <VStack align="stretch" spacing={3}>
+                <VStack align="stretch" spacing={2}>
                   <Heading size="sm" color="cream.100">
                     Accounts
                   </Heading>
@@ -283,7 +283,7 @@ export function ReportsPage() {
             {/* Category Filter */}
             <Card>
               <CardBody>
-                <VStack align="stretch" spacing={3}>
+                <VStack align="stretch" spacing={2}>
                   <Heading size="sm" color="cream.100">
                     Categories
                   </Heading>
@@ -320,7 +320,7 @@ export function ReportsPage() {
         <GridItem>
           <Card minH="500px">
             <CardBody>
-              <VStack align="stretch" spacing={4}>
+              <VStack align="stretch" spacing={2}>
                 <Heading size="md" color="cream.100">
                   Monthly Transaction Totals
                 </Heading>
