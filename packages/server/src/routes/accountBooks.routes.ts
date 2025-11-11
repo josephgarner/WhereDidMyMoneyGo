@@ -615,11 +615,13 @@ router.get("/:id/reports", async (req, res) => {
       conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
     }
 
-    // Get monthly totals (sum of debits and credits)
+    // Get monthly totals (separate debits and credits, combined = credits - debits)
     const result = await db
       .select({
         month: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
-        total: sql<number>`SUM(CAST(${transactions.debitAmount} AS DECIMAL) + CAST(${transactions.creditAmount} AS DECIMAL))`,
+        debits: sql<number>`SUM(CAST(${transactions.debitAmount} AS DECIMAL))`,
+        credits: sql<number>`SUM(CAST(${transactions.creditAmount} AS DECIMAL))`,
+        combined: sql<number>`SUM(CAST(${transactions.creditAmount} AS DECIMAL) - CAST(${transactions.debitAmount} AS DECIMAL))`,
       })
       .from(transactions)
       .where(and(...conditions))

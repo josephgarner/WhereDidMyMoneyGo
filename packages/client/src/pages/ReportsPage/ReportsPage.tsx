@@ -16,7 +16,8 @@ import {
   FormControl,
   FormLabel,
   Input,
-  HStack,
+  Button,
+  ButtonGroup,
 } from "@chakra-ui/react";
 import { ResponsiveBar } from "@nivo/bar";
 import { useAccounts } from "../../hooks";
@@ -51,6 +52,7 @@ export function ReportsPage() {
   const [reportData, setReportData] = useState<MonthlyReportData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metric, setMetric] = useState<'combined' | 'debits' | 'credits'>('combined');
 
   // Fetch available categories
   useEffect(() => {
@@ -127,7 +129,7 @@ export function ReportsPage() {
 
     reportData.forEach((item, index) => {
       const x = index;
-      const y = Number(item.total) || 0;
+      const y = Number(item[metric]) || 0;
       sumX += x;
       sumY += y;
       sumXY += x * y;
@@ -152,13 +154,13 @@ export function ReportsPage() {
       month: item.month,
       trend: slope * index + intercept,
     }));
-  }, [reportData]);
+  }, [reportData, metric]);
 
-  // Transform data for the chart
+  // Transform data for the chart (use absolute value for display)
   const chartData = reportData.map((item, index) => ({
     month: item.month,
-    total: item.total,
-    trend: trendLineData[index]?.trend || 0,
+    value: Math.abs(item[metric]),
+    trend: Math.abs(trendLineData[index]?.trend || 0),
   }));
 
   const handleAccountChange = (values: string[]) => {
@@ -320,10 +322,36 @@ export function ReportsPage() {
         <GridItem>
           <Card minH="500px">
             <CardBody>
-              <VStack align="stretch" spacing={2}>
-                <Heading size="md" color="cream.100">
-                  Monthly Transaction Totals
-                </Heading>
+              <VStack align="stretch" spacing={4}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Heading size="md" color="cream.100">
+                    Monthly Transaction {metric === 'combined' ? 'Combined (Credits - Debits)' : metric === 'debits' ? 'Debits' : 'Credits'}
+                  </Heading>
+
+                  <ButtonGroup size="sm" isAttached>
+                    <Button
+                      variant={metric === 'combined' ? 'solid' : 'outline'}
+                      colorScheme={metric === 'combined' ? 'teal' : 'gray'}
+                      onClick={() => setMetric('combined')}
+                    >
+                      Combined
+                    </Button>
+                    <Button
+                      variant={metric === 'debits' ? 'solid' : 'outline'}
+                      colorScheme={metric === 'debits' ? 'red' : 'gray'}
+                      onClick={() => setMetric('debits')}
+                    >
+                      Debits
+                    </Button>
+                    <Button
+                      variant={metric === 'credits' ? 'solid' : 'outline'}
+                      colorScheme={metric === 'credits' ? 'teal' : 'gray'}
+                      onClick={() => setMetric('credits')}
+                    >
+                      Credits
+                    </Button>
+                  </ButtonGroup>
+                </Box>
 
                 {error ? (
                   <Box
@@ -360,13 +388,13 @@ export function ReportsPage() {
                     <ResponsiveBar
                       layout="vertical"
                       data={chartData}
-                      keys={["total"]}
+                      keys={["value"]}
                       indexBy="month"
                       margin={{ top: 20, right: 30, bottom: 60, left: 80 }}
                       padding={0.3}
                       valueScale={{ type: "linear" }}
                       indexScale={{ type: "band", round: true }}
-                      colors={{ scheme: "nivo" }}
+                      colors={metric === 'debits' ? ['#FC8181'] : metric === 'credits' ? ['#4FD1C5'] : { scheme: "nivo" }}
                       layers={[
                         "grid",
                         "axes",

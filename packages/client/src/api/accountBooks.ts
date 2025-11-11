@@ -71,7 +71,9 @@ export interface ReportFilters {
 
 export interface MonthlyReportData {
   month: string;
-  total: number;
+  debits: number;
+  credits: number;
+  combined: number;
 }
 
 export interface TransactionsResult {
