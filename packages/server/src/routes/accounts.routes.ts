@@ -137,7 +137,7 @@ router.get('/:accountId/transactions/metadata', async (req, res) => {
 router.get('/:accountId/transactions', async (req, res) => {
   try {
     const { accountId } = req.params;
-    const { startDate, endDate, month, page = '1', limit = '20' } = req.query;
+    const { startDate, endDate, month, category, page = '1', limit = '20' } = req.query;
 
     // Parse pagination params
     const pageNum = parseInt(page as string, 10);
@@ -173,6 +173,11 @@ router.get('/:accountId/transactions', async (req, res) => {
       // Filter by date range
       conditions.push(gte(transactions.transactionDate, new Date(startDate)));
       conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
+    }
+
+    if (category && typeof category === 'string') {
+      // Filter by category
+      conditions.push(eq(transactions.category, category));
     }
 
     // Get total count for pagination

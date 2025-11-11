@@ -2,6 +2,8 @@ export { Nav } from './Nav';
 export { ProtectedRoute } from './ProtectedRoute';
 export { TransactionDateFilter } from './TransactionDateFilter';
 export type { DateFilterValue } from './TransactionDateFilter';
+export { TransactionCategoryFilter } from './TransactionCategoryFilter';
+export type { CategoryFilterValue } from './TransactionCategoryFilter';
 export { AddTransactionForm } from './AddTransactionForm';
 export type { AddTransactionFormProps } from './AddTransactionForm';
 export { UploadQIFForm } from './UploadQIFForm';

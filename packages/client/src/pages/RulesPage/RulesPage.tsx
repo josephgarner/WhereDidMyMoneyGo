@@ -230,7 +230,7 @@ export function RulesPage() {
                 <Tbody>
                   {rules.map((rule) => (
                     <Tr key={rule.id}>
-                      <Td color="cream.200" fontWeight="medium">
+                      <Td color="cream.200" fontWeight="medium" whiteSpace="normal" wordBreak="break-word">
                         {rule.keyword}
                       </Td>
                       <Td>

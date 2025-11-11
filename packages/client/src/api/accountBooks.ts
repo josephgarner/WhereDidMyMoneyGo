@@ -57,6 +57,7 @@ export interface TransactionFilters {
   month?: string; // YYYY-MM
   startDate?: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
+  category?: string;
   page?: number;
   limit?: number;
 }
@@ -204,6 +205,10 @@ export const accountBooksApi = {
     } else if (filters?.startDate && filters?.endDate) {
       params.append('startDate', filters.startDate);
       params.append('endDate', filters.endDate);
+    }
+
+    if (filters?.category) {
+      params.append('category', filters.category);
     }
 
     if (filters?.page) {

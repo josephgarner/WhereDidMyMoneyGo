@@ -40,7 +40,7 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
     }
 
     fetchTransactions();
-  }, [accountId, filters?.month, filters?.startDate, filters?.endDate, filters?.page, filters?.limit, refreshKey]);
+  }, [accountId, filters?.month, filters?.startDate, filters?.endDate, filters?.category, filters?.page, filters?.limit, refreshKey]);
 
   return { transactions, pagination, loading, error, refetch };
 }

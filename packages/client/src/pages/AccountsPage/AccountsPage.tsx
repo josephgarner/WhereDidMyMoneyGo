@@ -35,10 +35,13 @@ import {
   useAccounts,
   useTransactions,
   useTransactionMetadata,
+  useCategorySuggestions,
 } from "../../hooks";
 import {
   TransactionDateFilter,
   DateFilterValue,
+  TransactionCategoryFilter,
+  CategoryFilterValue,
   AddTransactionForm,
   UploadQIFForm,
   AddAccountForm,
@@ -64,6 +67,9 @@ export function AccountsPage() {
     null
   );
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    type: "all",
+  });
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilterValue>({
     type: "all",
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,14 +98,23 @@ export function AccountsPage() {
   // Get transaction metadata for the selected account
   const { metadata } = useTransactionMetadata(selectedAccountId);
 
+  // Get category suggestions for the selected account
+  const { suggestions } = useCategorySuggestions(selectedAccountId);
+
   // Reset to page 1 when account or date filter changes
   const handleAccountChange = (accountId: string) => {
     setSelectedAccountId(accountId);
+    setCategoryFilter({ type: "all" });
     setCurrentPage(1);
   };
 
   const handleDateFilterChange = (newFilter: DateFilterValue) => {
     setDateFilter(newFilter);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryFilterChange = (newFilter: CategoryFilterValue) => {
+    setCategoryFilter(newFilter);
     setCurrentPage(1);
   };
 
@@ -121,8 +136,12 @@ export function AccountsPage() {
       filters.endDate = dateFilter.endDate;
     }
 
+    if (categoryFilter.type === "category" && categoryFilter.category) {
+      filters.category = categoryFilter.category;
+    }
+
     return filters;
-  }, [dateFilter, currentPage, pageSize]);
+  }, [dateFilter, categoryFilter, currentPage, pageSize]);
 
   const {
     transactions,
@@ -436,14 +455,33 @@ export function AccountsPage() {
                 </HStack>
               )}
 
-              {selectedAccountId && metadata.availableMonths.length > 0 && (
-                <TransactionDateFilter
-                  availableMonths={metadata.availableMonths}
-                  minDate={minDate}
-                  maxDate={maxDate}
-                  value={dateFilter}
-                  onChange={handleDateFilterChange}
-                />
+              {selectedAccountId && (metadata.availableMonths.length > 0 || suggestions.categories.length > 0) && (
+                <Grid
+                  templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
+                  gap={2}
+                >
+                  {metadata.availableMonths.length > 0 && (
+                    <GridItem>
+                      <TransactionDateFilter
+                        availableMonths={metadata.availableMonths}
+                        minDate={minDate}
+                        maxDate={maxDate}
+                        value={dateFilter}
+                        onChange={handleDateFilterChange}
+                      />
+                    </GridItem>
+                  )}
+
+                  {suggestions.categories.length > 0 && (
+                    <GridItem>
+                      <TransactionCategoryFilter
+                        availableCategories={suggestions.categories}
+                        value={categoryFilter}
+                        onChange={handleCategoryFilterChange}
+                      />
+                    </GridItem>
+                  )}
+                </Grid>
               )}
 
               <Card minH="100px">
