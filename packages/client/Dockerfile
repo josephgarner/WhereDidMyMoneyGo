@@ -1,6 +1,9 @@
 # Build stage
 FROM node:22-alpine AS builder
 
+# Accept build arguments
+ARG VITE_API_URL
+
 WORKDIR /app
 
 # Copy root package.json and lock file
@@ -23,6 +26,10 @@ RUN npm run build
 
 # Build client for production
 WORKDIR /app/packages/client
+
+# Set environment variable for Vite build (Vite needs VITE_ prefix at build time)
+ENV VITE_API_URL=${VITE_API_URL}
+
 RUN npm run build
 
 # Production stage - use Node to serve with Vite preview

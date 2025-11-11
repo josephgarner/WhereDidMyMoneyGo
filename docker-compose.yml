@@ -46,19 +46,17 @@ services:
     build:
       context: .
       dockerfile: packages/client/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     image: finances-frontend:latest
     container_name: finances-frontend
     restart: unless-stopped
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
-      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS:-localhost}
     ports:
       - "5173:5173"
     depends_on:
       - backend
-    volumes:
-      - ./packages/client/src:/app/packages/client/src
-      - ./packages/shared/src:/app/packages/shared/src
 
 volumes:
   postgres_data:
