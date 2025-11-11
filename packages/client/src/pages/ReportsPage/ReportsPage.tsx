@@ -502,9 +502,6 @@ export function ReportsPage() {
                         friction: 26,
                         clamp: false,
                       }}
-                      initial={{
-                        scaleY: 0,
-                      }}
                       role="application"
                       ariaLabel="Monthly transaction totals bar chart"
                     />

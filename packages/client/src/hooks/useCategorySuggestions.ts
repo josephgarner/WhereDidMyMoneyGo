@@ -16,10 +16,12 @@ export function useCategorySuggestions(accountId: string | null) {
       return;
     }
 
+    const accId = accountId; // Capture for closure
+
     async function fetchSuggestions() {
       try {
         setLoading(true);
-        const fetchedSuggestions = await accountBooksApi.getCategorySuggestions(accountId);
+        const fetchedSuggestions = await accountBooksApi.getCategorySuggestions(accId);
         setSuggestions(fetchedSuggestions);
         setError(null);
       } catch (err: any) {

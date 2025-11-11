@@ -21,11 +21,13 @@ export function useTransactions(accountId: string | null, filters?: TransactionF
       return;
     }
 
+    const accId = accountId; // Capture for closure
+
     async function fetchTransactions() {
       try {
         setLoading(true);
         const result = await accountBooksApi.getTransactionsByAccountId(
-          accountId,
+          accId,
           filters
         );
         setTransactions(result.transactions);

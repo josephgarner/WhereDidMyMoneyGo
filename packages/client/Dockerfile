@@ -34,8 +34,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/client/package*.json ./packages/client/
 
-# Install production dependencies only
-RUN npm install --workspace=packages/client --omit=dev
+# Install all dependencies (vite preview needs vite which is a devDependency)
+RUN npm install --workspace=packages/client
 
 # Copy built files from builder
 COPY --from=builder /app/packages/client/dist ./packages/client/dist

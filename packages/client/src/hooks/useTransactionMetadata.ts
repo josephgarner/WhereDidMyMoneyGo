@@ -17,10 +17,12 @@ export function useTransactionMetadata(accountId: string | null) {
       return;
     }
 
+    const accId = accountId; // Capture for closure
+
     async function fetchMetadata() {
       try {
         setLoading(true);
-        const fetchedMetadata = await accountBooksApi.getTransactionMetadata(accountId);
+        const fetchedMetadata = await accountBooksApi.getTransactionMetadata(accId);
         setMetadata(fetchedMetadata);
         setError(null);
       } catch (err: any) {

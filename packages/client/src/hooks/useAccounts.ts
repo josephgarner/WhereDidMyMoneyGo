@@ -19,10 +19,12 @@ export function useAccounts(accountBookId: string | null) {
       return;
     }
 
+    const bookId = accountBookId; // Capture for closure
+
     async function fetchAccounts() {
       try {
         setLoading(true);
-        const fetchedAccounts = await accountBooksApi.getAccountsByBookId(accountBookId);
+        const fetchedAccounts = await accountBooksApi.getAccountsByBookId(bookId);
         setAccounts(fetchedAccounts);
         setError(null);
       } catch (err: any) {
