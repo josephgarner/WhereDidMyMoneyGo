@@ -3,6 +3,7 @@ FROM node:22-alpine AS builder
 
 # Accept build arguments
 ARG VITE_API_URL
+ARG __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
 
 WORKDIR /app
 
@@ -29,6 +30,7 @@ WORKDIR /app/packages/client
 
 # Set environment variable for Vite build (Vite needs VITE_ prefix at build time)
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=${__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS}
 
 RUN npm run build
 
