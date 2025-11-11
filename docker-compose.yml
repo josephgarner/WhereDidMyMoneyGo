@@ -23,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: packages/server/Dockerfile
+    image: finances-backend:latest
     container_name: finances-backend
     restart: unless-stopped
     environment:
@@ -47,6 +48,7 @@ services:
     build:
       context: .
       dockerfile: packages/client/Dockerfile
+    image: finances-frontend:latest
     container_name: finances-frontend
     restart: unless-stopped
     environment:
