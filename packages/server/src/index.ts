@@ -27,8 +27,22 @@ async function startServer() {
 
   const app = express();
 
-  // HTTP request logging
-  app.use(morgan('combined', { stream: morganStream }));
+  // HTTP request logging with more detail
+  morgan.token('body', (req: any) => {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+      return JSON.stringify(req.body);
+    }
+    return '';
+  });
+
+  morgan.token('query', (req: any) => {
+    return Object.keys(req.query).length > 0 ? JSON.stringify(req.query) : '';
+  });
+
+  app.use(morgan(':method :url :status :response-time ms - query::query - body::body', {
+    stream: morganStream,
+    skip: (req, res) => req.url === '/health' // Skip health check logs
+  }));
 
   // Middleware
   app.use(cors({
@@ -59,6 +73,30 @@ async function startServer() {
   app.use('/api/account-books', budgetsRoutes);
   app.use('/api/accounts', accountsRoutes);
 
+  // Log all registered routes for debugging
+  logger.info('Registered routes:');
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      const methods = Object.keys(middleware.route.methods).join(', ').toUpperCase();
+      logger.info(`  ${methods} ${middleware.route.path}`);
+    } else if (middleware.name === 'router') {
+      // Routes registered via Router
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          const methods = Object.keys(handler.route.methods).join(', ').toUpperCase();
+          const path = middleware.regexp.source
+            .replace('\\/?', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/')
+            .replace(/\^/g, '')
+            .replace(/\$/g, '');
+          logger.info(`  ${methods} ${path}${handler.route.path}`);
+        }
+      });
+    }
+  });
+
   // Health check
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -77,6 +115,27 @@ async function startServer() {
       success: true,
       message: 'This is a protected route',
       user: req.session.user,
+    });
+  });
+
+  // 404 handler - log all unmatched routes
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    logger.warn('404 - Route not found', {
+      method: req.method,
+      path: req.path,
+      url: req.url,
+      originalUrl: req.originalUrl,
+      query: req.query,
+      headers: {
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+      }
+    });
+    res.status(404).json({
+      success: false,
+      error: 'Route not found',
+      path: req.path
     });
   });
 

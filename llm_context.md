@@ -762,18 +762,126 @@ AUTHENTIK_CLIENT_SECRET=your_client_secret
 - Ensure `SESSION_SECRET` is at least 32 characters
 - For HTTPS issues, verify `NODE_ENV=production` is set
 
+### UI Enhancements
+**Date**: Recent session
+
+**Features Added**:
+
+1. **Multi-line Keyword Input**: Category rule modal now supports textarea (2 rows) for keywords
+   - File: `packages/client/src/components/organisms/AddRuleModal.tsx`
+   - Allows entering multiple keywords with better visibility
+   - Still uses comma-separated format
+
+2. **Keyword Column Text Wrapping**: Rules table keyword column now wraps text
+   - File: `packages/client/src/pages/RulesPage/RulesPage.tsx`
+   - Added `whiteSpace="normal"` and `wordBreak="break-word"` to Td component
+   - Prevents horizontal scrollbar when keywords are long
+
+3. **Category Filter Component**: Created reusable category filter matching date filter style
+   - File: `packages/client/src/components/organisms/TransactionCategoryFilter.tsx`
+   - Radio buttons for "All" or "Category" filtering
+   - Dropdown with sorted categories
+   - Reset button when filter is active
+   - Consistent styling with TransactionDateFilter
+
+4. **Transaction Category Filtering**: Added category filtering to AccountsPage
+   - File: `packages/client/src/pages/AccountsPage/AccountsPage.tsx`
+   - Date and category filters display side-by-side on large screens (Grid layout)
+   - Backend support: GET `/api/accounts/:accountId/transactions?category=X`
+   - Added `category` field to TransactionFilters interface
+   - Updated `useTransactions` hook to watch `filters?.category` changes
+
+5. **Reports Page**: New comprehensive reporting interface
+   - File: `packages/client/src/pages/ReportsPage/ReportsPage.tsx`
+   - Route: `/account-books/:accountBookId/reports`
+   - Navigation: Added "Reports" button to Nav component
+
+   **Features**:
+   - **Multi-select Filters**: Checkboxes for accounts and categories
+   - **Date Range Filter**:
+     - Default: 6 months ago to today
+     - Custom date inputs with validation
+   - **Bar Chart Visualization**:
+     - Monthly transaction totals using @nivo/bar
+     - Displays sum of debits and credits per month
+     - Animated bars (bottom-to-top growth)
+   - **Trend Line**:
+     - Linear regression overlay on bar chart
+     - Red dashed line showing spending trend
+     - Calculated using least squares method
+     - Only displays with 2+ data points
+   - **Backend**: GET `/api/account-books/:id/reports`
+     - Query params: `accountIds[]`, `categories[]`, `startDate`, `endDate`
+     - Returns monthly aggregated totals
+
+6. **Responsive Filter Layout**: Date and category filters side-by-side
+   - File: `packages/client/src/pages/AccountsPage/AccountsPage.tsx`
+   - Grid layout: single column on mobile, two columns on large screens
+   - Consistent spacing with `gap={2}`
+
+### Technical Implementation Details
+
+**TransactionCategoryFilter Component**:
+```typescript
+interface CategoryFilterValue {
+  type: 'all' | 'category';
+  category?: string;
+}
+```
+- Uses same pattern as DateFilterValue for consistency
+- `useEffect` updates parent without `onChange` in deps (prevents infinite loops)
+- Sorted categories alphabetically
+
+**Reports API**:
+- Aggregates transactions by month using SQL `TO_CHAR` and `GROUP BY`
+- Filters support multiple accounts and categories (IN clauses)
+- Date range filtering with `gte` and `lte` operators
+- Returns: `{ month: string, total: number }[]`
+
+**Trend Line Calculation**:
+- Linear regression formula: `y = mx + b`
+- Slope: `m = (n∑xy - ∑x∑y) / (n∑x² - (∑x)²)`
+- Intercept: `b = (∑y - m∑x) / n`
+- Handles division by zero (uses average when all points are equal)
+- Custom Nivo layer for rendering SVG path and circles
+
+**Chart Animation**:
+- `layout="vertical"` - Ensures bars are vertical
+- `initial={{ scaleY: 0 }}` - Bars start at zero height
+- `motionConfig` - Custom spring animation (tension: 170, friction: 26)
+- Bars grow from bottom to top on load
+
+### Bug Fixes
+
+**Issue**: Category filter caused infinite re-render loop
+**Solution**: Removed `onChange` from `useEffect` dependencies with eslint-disable comment
+- File: `packages/client/src/components/organisms/TransactionCategoryFilter.tsx`
+
+**Issue**: Category filter not triggering transaction refetch
+**Solution**: Added `filters?.category` to `useTransactions` hook dependencies
+- File: `packages/client/src/hooks/useTransactions.ts`
+
+**Issue**: Trend line rendering flat at bottom of chart
+**Solution**:
+- Fixed yScale usage in custom layer
+- Improved data point matching with bars array
+- Added Number() conversion in trend calculation
+- Increased visibility (thicker stroke, larger dots, white outline)
+
 ## Session Summary
 
 This application is a comprehensive financial management system with:
 - Complete CRUD operations for accounts and transactions
 - QIF file import functionality with category rule auto-assignment
-- Dashboard with balance visualizations
-- Advanced filtering and pagination
+- Dashboard with balance visualizations and sparkline charts
+- Advanced filtering and pagination with category and date filters
+- Reports page with bar charts, trend lines, and customizable date ranges
 - Docker-based deployment with automatic database initialization
 - OAuth2/OIDC authentication via Authentik
 - Production-ready configuration with HTTPS support
 - Real-time balance calculations
-- Responsive UI with dark theme
+- Responsive UI with dark theme and consistent component patterns
 - Proper error handling and user feedback
+- Reusable filter components (date and category)
 
 All code follows TypeScript best practices, React hooks patterns, and atomic design methodology. The application includes comprehensive documentation for Docker deployment and authentication troubleshooting.

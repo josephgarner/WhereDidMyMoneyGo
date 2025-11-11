@@ -574,6 +574,16 @@ router.get("/:id/reports", async (req, res) => {
     const { id: accountBookId } = req.params;
     const { accountIds, categories, startDate, endDate } = req.query;
 
+    logger.info("Reports endpoint hit", {
+      accountBookId,
+      accountIds,
+      categories,
+      startDate,
+      endDate,
+      fullUrl: req.originalUrl,
+      method: req.method,
+    });
+
     // Build where conditions
     const conditions = [eq(transactions.accountBookId, accountBookId)];
 

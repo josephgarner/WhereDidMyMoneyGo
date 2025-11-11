@@ -1,4 +1,5 @@
-FROM node:22-alpine
+# Build stage
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -20,15 +21,33 @@ COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build
 
-# Set working directory to client
+# Build client for production
+WORKDIR /app/packages/client
+RUN npm run build
+
+# Production stage - use Node to serve with Vite preview
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/client/package*.json ./packages/client/
+
+# Install production dependencies only
+RUN npm install --workspace=packages/client --omit=dev
+
+# Copy built files from builder
+COPY --from=builder /app/packages/client/dist ./packages/client/dist
+
 WORKDIR /app/packages/client
 
-# Expose Vite dev server port
+# Expose Vite preview port
 EXPOSE 5173
 
 # Set environment variables
 ENV HOST=0.0.0.0
 ENV PORT=5173
 
-# Run Vite dev server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Run Vite preview server (serves production build)
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
