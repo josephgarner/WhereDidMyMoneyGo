@@ -33,9 +33,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY packages/client/package*.json ./packages/client/
+COPY packages/shared/package*.json ./packages/shared/
+
+# Copy built shared package from builder (needed for client dependency)
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 
 # Install all dependencies (vite preview needs vite which is a devDependency)
-RUN npm install --workspace=packages/client
+RUN npm install
 
 # Copy built files from builder
 COPY --from=builder /app/packages/client/dist ./packages/client/dist
