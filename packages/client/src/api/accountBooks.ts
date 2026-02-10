@@ -76,6 +76,25 @@ export interface MonthlyReportData {
   combined: number;
 }
 
+export interface CategoryTotal {
+  category: string;
+  debits: number;
+  credits: number;
+}
+
+export interface MonthlyCategoryTotal {
+  month: string;
+  category: string;
+  debits: number;
+  credits: number;
+}
+
+export interface CategoryReportData {
+  categoryTotals: CategoryTotal[];
+  monthlyCategoryTotals: MonthlyCategoryTotal[];
+  totals: { debits: number; credits: number; combined: number };
+}
+
 export interface MonthlySurplus {
   month: string;
   debits: number;
@@ -484,5 +503,31 @@ export const accountBooksApi = {
       `/api/account-books/${accountBookId}/surplus-analysis`
     );
     return response.data.data || [];
+  },
+
+  async getCategoryReportData(
+    accountBookId: string,
+    filters?: ReportFilters
+  ): Promise<CategoryReportData> {
+    const params = new URLSearchParams();
+
+    if (filters?.accountIds && filters.accountIds.length > 0) {
+      filters.accountIds.forEach(id => params.append('accountIds', id));
+    }
+    if (filters?.categories && filters.categories.length > 0) {
+      filters.categories.forEach(cat => params.append('categories', cat));
+    }
+    if (filters?.startDate) {
+      params.append('startDate', filters.startDate);
+    }
+    if (filters?.endDate) {
+      params.append('endDate', filters.endDate);
+    }
+
+    const queryString = params.toString();
+    const url = `/api/account-books/${accountBookId}/reports/by-category${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiClient.get<ApiResponse<CategoryReportData>>(url);
+    return response.data.data || { categoryTotals: [], monthlyCategoryTotals: [], totals: { debits: 0, credits: 0, combined: 0 } };
   },
 };

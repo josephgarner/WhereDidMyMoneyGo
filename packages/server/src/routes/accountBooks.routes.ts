@@ -646,6 +646,108 @@ router.get("/:id/reports", async (req, res) => {
   }
 });
 
+// GET /api/account-books/:id/reports/by-category - Get spending breakdown by category
+router.get("/:id/reports/by-category", async (req, res) => {
+  try {
+    const { id: accountBookId } = req.params;
+    const { accountIds, categories, startDate, endDate } = req.query;
+
+    // Build where conditions
+    const conditions = [eq(transactions.accountBookId, accountBookId)];
+
+    if (accountIds) {
+      const accountIdArray = Array.isArray(accountIds) ? accountIds : [accountIds];
+      if (accountIdArray.length > 0) {
+        conditions.push(
+          sql`${transactions.accountId} IN (${sql.join(accountIdArray.map(id => sql`${id}`), sql`, `)})`
+        );
+      }
+    }
+
+    if (categories) {
+      const categoryArray = Array.isArray(categories) ? categories : [categories];
+      if (categoryArray.length > 0) {
+        conditions.push(
+          sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
+        );
+      }
+    }
+
+    if (startDate && typeof startDate === 'string') {
+      conditions.push(gte(transactions.transactionDate, new Date(startDate)));
+    }
+    if (endDate && typeof endDate === 'string') {
+      conditions.push(lte(transactions.transactionDate, new Date(endDate + 'T23:59:59')));
+    }
+
+    const whereClause = and(...conditions);
+
+    // Query 1: Per-category totals
+    const categoryTotals = await db
+      .select({
+        category: transactions.category,
+        debits: sql<number>`COALESCE(SUM(CAST(${transactions.debitAmount} AS DECIMAL)), 0)`,
+        credits: sql<number>`COALESCE(SUM(CAST(${transactions.creditAmount} AS DECIMAL)), 0)`,
+      })
+      .from(transactions)
+      .where(whereClause)
+      .groupBy(transactions.category)
+      .orderBy(sql`COALESCE(SUM(CAST(${transactions.debitAmount} AS DECIMAL)), 0) DESC`);
+
+    // Query 2: Per-month-per-category totals
+    const monthlyCategoryTotals = await db
+      .select({
+        month: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
+        category: transactions.category,
+        debits: sql<number>`COALESCE(SUM(CAST(${transactions.debitAmount} AS DECIMAL)), 0)`,
+        credits: sql<number>`COALESCE(SUM(CAST(${transactions.creditAmount} AS DECIMAL)), 0)`,
+      })
+      .from(transactions)
+      .where(whereClause)
+      .groupBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`, transactions.category)
+      .orderBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
+
+    // Compute grand totals from categoryTotals
+    const totals = categoryTotals.reduce(
+      (acc, row) => ({
+        debits: acc.debits + Number(row.debits),
+        credits: acc.credits + Number(row.credits),
+        combined: acc.combined + (Number(row.credits) - Number(row.debits)),
+      }),
+      { debits: 0, credits: 0, combined: 0 }
+    );
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        categoryTotals: categoryTotals.map(r => ({
+          category: r.category,
+          debits: Number(r.debits),
+          credits: Number(r.credits),
+        })),
+        monthlyCategoryTotals: monthlyCategoryTotals.map(r => ({
+          month: r.month,
+          category: r.category,
+          debits: Number(r.debits),
+          credits: Number(r.credits),
+        })),
+        totals,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching category report data", {
+      accountBookId: req.params.id,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch category report data",
+    });
+  }
+});
+
 // GET /api/account-books/:id/surplus-analysis - Get monthly surplus/deficit per account for the last 6 months
 router.get("/:id/surplus-analysis", async (req, res) => {
   try {
