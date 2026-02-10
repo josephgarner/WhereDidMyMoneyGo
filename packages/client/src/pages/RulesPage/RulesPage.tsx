@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -40,6 +40,14 @@ export function RulesPage() {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   const { rules, loading, error, refetch } = useRules(accountBookId || null);
+
+  const sortedRules = useMemo(() => {
+    return [...rules].sort((a, b) => {
+      const catCmp = a.category.localeCompare(b.category);
+      if (catCmp !== 0) return catCmp;
+      return (a.subCategory || '').localeCompare(b.subCategory || '');
+    });
+  }, [rules]);
 
   // Delete dialog state
   const {
@@ -228,7 +236,7 @@ export function RulesPage() {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {rules.map((rule) => (
+                  {sortedRules.map((rule) => (
                     <Tr key={rule.id}>
                       <Td color="cream.200" fontWeight="medium" whiteSpace="normal" wordBreak="break-word">
                         {rule.keyword}

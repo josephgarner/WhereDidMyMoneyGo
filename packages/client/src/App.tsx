@@ -68,7 +68,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
+<Route
               path="/account-books/:accountBookId"
               element={<Navigate to="dashboard" replace />}
             />

@@ -5,3 +5,4 @@ export * from './useTransactionMetadata';
 export * from './useCategorySuggestions';
 export * from './useRules';
 export * from './useLocalStorage';
+export * from './useSurplusAnalysis';

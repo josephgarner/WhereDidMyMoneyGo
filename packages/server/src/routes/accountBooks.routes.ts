@@ -646,4 +646,100 @@ router.get("/:id/reports", async (req, res) => {
   }
 });
 
+// GET /api/account-books/:id/surplus-analysis - Get monthly surplus/deficit per account for the last 6 months
+router.get("/:id/surplus-analysis", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify account book exists
+    const accountBook = await db
+      .select()
+      .from(accountBooks)
+      .where(eq(accountBooks.id, id))
+      .limit(1);
+
+    if (accountBook.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Account book not found",
+      });
+    }
+
+    // Get all accounts for this book
+    const bookAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.accountBookId, id));
+
+    // Calculate the start of the 6-month window (1st of the month, 6 months ago)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    // Query monthly surplus per account for the last 6 months
+    const result = await db
+      .select({
+        accountId: transactions.accountId,
+        month: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
+        debits: sql<number>`COALESCE(SUM(CAST(${transactions.debitAmount} AS DECIMAL)), 0)`,
+        credits: sql<number>`COALESCE(SUM(CAST(${transactions.creditAmount} AS DECIMAL)), 0)`,
+        surplus: sql<number>`COALESCE(SUM(CAST(${transactions.creditAmount} AS DECIMAL) - CAST(${transactions.debitAmount} AS DECIMAL)), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.accountBookId, id),
+          gte(transactions.transactionDate, sixMonthsAgo)
+        )
+      )
+      .groupBy(transactions.accountId, sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`)
+      .orderBy(transactions.accountId, sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
+
+    // Group results by account
+    const accountSurplusMap = new Map<string, Array<{
+      month: string;
+      debits: number;
+      credits: number;
+      surplus: number;
+    }>>();
+
+    for (const row of result) {
+      if (!accountSurplusMap.has(row.accountId)) {
+        accountSurplusMap.set(row.accountId, []);
+      }
+      accountSurplusMap.get(row.accountId)!.push({
+        month: row.month,
+        debits: Number(row.debits),
+        credits: Number(row.credits),
+        surplus: Number(row.surplus),
+      });
+    }
+
+    // Build response with account metadata
+    const surplusData = bookAccounts.map((account) => ({
+      accountId: account.id,
+      accountName: account.name,
+      currentBalance: Number(account.totalMonthlyBalance),
+      monthlyData: accountSurplusMap.get(account.id) || [],
+    }));
+
+    const response: ApiResponse = {
+      success: true,
+      data: surplusData,
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching surplus analysis", {
+      accountBookId: req.params.id,
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch surplus analysis data",
+    });
+  }
+});
+
 export default router;

@@ -24,3 +24,7 @@ export { AddBudgetModal } from './AddBudgetModal';
 export type { AddBudgetModalProps } from './AddBudgetModal';
 export { AddAccountBookModal } from './AddAccountBookModal';
 export type { AddAccountBookModalProps } from './AddAccountBookModal';
+export { SurplusAnalysisTable } from './SurplusAnalysisTable';
+export type { SurplusAnalysisTableProps } from './SurplusAnalysisTable';
+export { AccountSparklineGrid } from './AccountSparklineGrid';
+export type { AccountSparklineGridProps } from './AccountSparklineGrid';

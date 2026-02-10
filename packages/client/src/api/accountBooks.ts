@@ -76,6 +76,20 @@ export interface MonthlyReportData {
   combined: number;
 }
 
+export interface MonthlySurplus {
+  month: string;
+  debits: number;
+  credits: number;
+  surplus: number;
+}
+
+export interface AccountSurplusData {
+  accountId: string;
+  accountName: string;
+  currentBalance: number;
+  monthlyData: MonthlySurplus[];
+}
+
 export interface TransactionsResult {
   transactions: Transaction[];
   pagination: PaginationMeta | null;
@@ -462,6 +476,13 @@ export const accountBooksApi = {
     const url = `/api/account-books/${accountBookId}/reports${queryString ? `?${queryString}` : ''}`;
 
     const response = await apiClient.get<ApiResponse<MonthlyReportData[]>>(url);
+    return response.data.data || [];
+  },
+
+  async getSurplusAnalysis(accountBookId: string): Promise<AccountSurplusData[]> {
+    const response = await apiClient.get<ApiResponse<AccountSurplusData[]>>(
+      `/api/account-books/${accountBookId}/surplus-analysis`
+    );
     return response.data.data || [];
   },
 };
