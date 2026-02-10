@@ -300,7 +300,7 @@ router.post('/:accountId/transactions', async (req, res) => {
 // POST /api/accounts/:accountId/transactions/upload-qif - Upload and import transactions from QIF file
 router.post('/:accountId/transactions/upload-qif', upload.single('qifFile'), async (req, res) => {
   try {
-    const { accountId } = req.params;
+    const accountId = req.params.accountId as string;
     logger.info('QIF file upload started', { accountId, fileName: req.file?.originalname });
 
     // Verify account exists and get account book ID
