@@ -650,7 +650,7 @@ router.get("/:id/reports", async (req, res) => {
 router.get("/:id/reports/by-category", async (req, res) => {
   try {
     const { id: accountBookId } = req.params;
-    const { accountIds, categories, startDate, endDate } = req.query;
+    const { accountIds, categories, subCategories, startDate, endDate } = req.query;
 
     // Build where conditions
     const conditions = [eq(transactions.accountBookId, accountBookId)];
@@ -669,6 +669,15 @@ router.get("/:id/reports/by-category", async (req, res) => {
       if (categoryArray.length > 0) {
         conditions.push(
           sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
+        );
+      }
+    }
+
+    if (subCategories) {
+      const subCategoryArray = Array.isArray(subCategories) ? subCategories : [subCategories];
+      if (subCategoryArray.length > 0) {
+        conditions.push(
+          sql`${transactions.subCategory} IN (${sql.join(subCategoryArray.map(sc => sql`${sc}`), sql`, `)})`
         );
       }
     }
@@ -707,6 +716,19 @@ router.get("/:id/reports/by-category", async (req, res) => {
       .groupBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`, transactions.category)
       .orderBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
 
+    // Query 3: Per-category-per-subcategory totals
+    const subCategoryTotals = await db
+      .select({
+        category: transactions.category,
+        subCategory: transactions.subCategory,
+        debits: sql<number>`COALESCE(SUM(CAST(${transactions.debitAmount} AS DECIMAL)), 0)`,
+        credits: sql<number>`COALESCE(SUM(CAST(${transactions.creditAmount} AS DECIMAL)), 0)`,
+      })
+      .from(transactions)
+      .where(whereClause)
+      .groupBy(transactions.category, transactions.subCategory)
+      .orderBy(transactions.category, transactions.subCategory);
+
     // Compute grand totals from categoryTotals
     const totals = categoryTotals.reduce(
       (acc, row) => ({
@@ -728,6 +750,12 @@ router.get("/:id/reports/by-category", async (req, res) => {
         monthlyCategoryTotals: monthlyCategoryTotals.map(r => ({
           month: r.month,
           category: r.category,
+          debits: Number(r.debits),
+          credits: Number(r.credits),
+        })),
+        subCategoryTotals: subCategoryTotals.map(r => ({
+          category: r.category,
+          subCategory: r.subCategory || '',
           debits: Number(r.debits),
           credits: Number(r.credits),
         })),

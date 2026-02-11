@@ -65,6 +65,7 @@ export interface TransactionFilters {
 export interface ReportFilters {
   accountIds?: string[];
   categories?: string[];
+  subCategories?: string[];
   startDate?: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
 }
@@ -89,9 +90,17 @@ export interface MonthlyCategoryTotal {
   credits: number;
 }
 
+export interface SubCategoryTotal {
+  category: string;
+  subCategory: string;
+  debits: number;
+  credits: number;
+}
+
 export interface CategoryReportData {
   categoryTotals: CategoryTotal[];
   monthlyCategoryTotals: MonthlyCategoryTotal[];
+  subCategoryTotals: SubCategoryTotal[];
   totals: { debits: number; credits: number; combined: number };
 }
 
@@ -517,6 +526,9 @@ export const accountBooksApi = {
     if (filters?.categories && filters.categories.length > 0) {
       filters.categories.forEach(cat => params.append('categories', cat));
     }
+    if (filters?.subCategories && filters.subCategories.length > 0) {
+      filters.subCategories.forEach(sc => params.append('subCategories', sc));
+    }
     if (filters?.startDate) {
       params.append('startDate', filters.startDate);
     }
@@ -528,6 +540,6 @@ export const accountBooksApi = {
     const url = `/api/account-books/${accountBookId}/reports/by-category${queryString ? `?${queryString}` : ''}`;
 
     const response = await apiClient.get<ApiResponse<CategoryReportData>>(url);
-    return response.data.data || { categoryTotals: [], monthlyCategoryTotals: [], totals: { debits: 0, credits: 0, combined: 0 } };
+    return response.data.data || { categoryTotals: [], monthlyCategoryTotals: [], subCategoryTotals: [], totals: { debits: 0, credits: 0, combined: 0 } };
   },
 };

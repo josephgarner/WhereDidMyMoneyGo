@@ -26,6 +26,11 @@ import {
   MonthlyCategoryChart,
 } from "../../components/organisms";
 
+interface CategoryWithSubs {
+  category: string;
+  subCategories: string[];
+}
+
 const getSixMonthsAgo = () => {
   const date = new Date();
   date.setMonth(date.getMonth() - 6);
@@ -47,22 +52,22 @@ export function ReportsPage() {
 
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>(getSixMonthsAgo());
   const [endDate, setEndDate] = useState<string>(getToday());
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryWithSubs[]>([]);
   const [reportData, setReportData] = useState<CategoryReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available categories
+  // Fetch available categories with subcategories
   useEffect(() => {
     if (!accountBookId) return;
 
     const fetchCategories = async () => {
       try {
-        const categoryData = await accountBooksApi.getCategories(accountBookId);
-        const categoryList = categoryData.map((c) => c.category).sort();
-        setCategories(categoryList);
+        const data = await accountBooksApi.getCategories(accountBookId);
+        setCategoryData(data.sort((a, b) => a.category.localeCompare(b.category)));
       } catch (err: any) {
         console.error("Error fetching categories:", err);
       }
@@ -87,6 +92,9 @@ export function ReportsPage() {
         if (selectedCategories.length > 0) {
           filters.categories = selectedCategories;
         }
+        if (selectedSubCategories.length > 0) {
+          filters.subCategories = selectedSubCategories;
+        }
         if (startDate) {
           filters.startDate = startDate;
         }
@@ -108,15 +116,12 @@ export function ReportsPage() {
     };
 
     fetchReportData();
-  }, [accountBookId, selectedAccountIds, selectedCategories, startDate, endDate]);
+  }, [accountBookId, selectedAccountIds, selectedCategories, selectedSubCategories, startDate, endDate]);
 
   const handleAccountChange = (values: string[]) => {
     setSelectedAccountIds(values);
   };
 
-  const handleCategoryChange = (values: string[]) => {
-    setSelectedCategories(values);
-  };
 
   if (accountsLoading) {
     return (
@@ -206,23 +211,50 @@ export function ReportsPage() {
               </CardBody>
             </Card>
 
-            {/* Category Filter */}
+            {/* Category & Subcategory Filter */}
             <Card>
               <CardBody>
                 <VStack align="stretch" spacing={2}>
                   <Heading size="sm" color="cream.100">Categories</Heading>
-                  {categories.length === 0 ? (
+                  {categoryData.length === 0 ? (
                     <Text color="cream.400" fontSize="sm">No categories available</Text>
                   ) : (
-                    <CheckboxGroup value={selectedCategories} onChange={handleCategoryChange}>
-                      <Stack spacing={2} maxH="400px" overflowY="auto">
-                        {categories.map((category) => (
-                          <Checkbox key={category} value={category} colorScheme="teal">
-                            <Text fontSize="sm" color="cream.200">{category}</Text>
+                    <Stack spacing={1} maxH="400px" overflowY="auto">
+                      {categoryData.map((cat) => (
+                        <Box key={cat.category}>
+                          <Checkbox
+                            isChecked={selectedCategories.includes(cat.category)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCategories((prev) => [...prev, cat.category]);
+                              } else {
+                                setSelectedCategories((prev) => prev.filter((c) => c !== cat.category));
+                              }
+                            }}
+                            colorScheme="teal"
+                          >
+                            <Text fontSize="sm" color="cream.200">{cat.category}</Text>
                           </Checkbox>
-                        ))}
-                      </Stack>
-                    </CheckboxGroup>
+                          {cat.subCategories.length > 0 && cat.subCategories.map((sub) => (
+                            <Box key={sub} pl={6} pt={1}>
+                              <Checkbox
+                                isChecked={selectedSubCategories.includes(sub)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedSubCategories((prev) => [...prev, sub]);
+                                  } else {
+                                    setSelectedSubCategories((prev) => prev.filter((s) => s !== sub));
+                                  }
+                                }}
+                                colorScheme="purple"
+                              >
+                                <Text fontSize="xs" color="cream.400" fontStyle="italic">{sub}</Text>
+                              </Checkbox>
+                            </Box>
+                          ))}
+                        </Box>
+                      ))}
+                    </Stack>
                   )}
                 </VStack>
               </CardBody>
@@ -257,7 +289,10 @@ export function ReportsPage() {
                   <CategoryPieChart categoryTotals={reportData.categoryTotals} />
                 </GridItem>
                 <GridItem>
-                  <CategoryBreakdownTable categoryTotals={reportData.categoryTotals} />
+                  <CategoryBreakdownTable
+                    categoryTotals={reportData.categoryTotals}
+                    subCategoryTotals={reportData.subCategoryTotals}
+                  />
                 </GridItem>
               </Grid>
 
