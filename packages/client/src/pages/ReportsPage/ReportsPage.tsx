@@ -60,21 +60,31 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available categories with subcategories
+  // Fetch available categories filtered by selected accounts
   useEffect(() => {
     if (!accountBookId) return;
 
     const fetchCategories = async () => {
       try {
-        const data = await accountBooksApi.getCategories(accountBookId);
-        setCategoryData(data.sort((a, b) => a.category.localeCompare(b.category)));
+        const data = await accountBooksApi.getCategories(
+          accountBookId,
+          selectedAccountIds.length > 0 ? selectedAccountIds : undefined
+        );
+        const sorted = data.sort((a, b) => a.category.localeCompare(b.category));
+        setCategoryData(sorted);
+
+        // Clear selections that no longer exist in the available categories
+        const availableCats = new Set(sorted.map((c) => c.category));
+        const availableSubs = new Set(sorted.flatMap((c) => c.subCategories));
+        setSelectedCategories((prev) => prev.filter((c) => availableCats.has(c)));
+        setSelectedSubCategories((prev) => prev.filter((s) => availableSubs.has(s)));
       } catch (err: any) {
         console.error("Error fetching categories:", err);
       }
     };
 
     fetchCategories();
-  }, [accountBookId]);
+  }, [accountBookId, selectedAccountIds]);
 
   // Fetch report data whenever filters change
   useEffect(() => {

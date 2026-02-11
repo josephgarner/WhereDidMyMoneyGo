@@ -522,14 +522,27 @@ router.get("/:id/categories", async (req, res) => {
       });
     }
 
-    // Get distinct categories and subcategories from all transactions in this account book
+    // Build where conditions
+    const conditions = [eq(transactions.accountBookId, id)];
+
+    const { accountIds } = req.query;
+    if (accountIds) {
+      const accountIdArray = Array.isArray(accountIds) ? accountIds : [accountIds];
+      if (accountIdArray.length > 0) {
+        conditions.push(
+          sql`${transactions.accountId} IN (${sql.join(accountIdArray.map(aid => sql`${aid}`), sql`, `)})`
+        );
+      }
+    }
+
+    // Get distinct categories and subcategories
     const result = await db
       .selectDistinct({
         category: transactions.category,
         subCategory: transactions.subCategory,
       })
       .from(transactions)
-      .where(eq(transactions.accountBookId, id))
+      .where(and(...conditions))
       .orderBy(transactions.category, transactions.subCategory);
 
     // Group by category with their subcategories

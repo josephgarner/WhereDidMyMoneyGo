@@ -466,14 +466,20 @@ export const accountBooksApi = {
   },
 
   // Get all categories and subcategories for an account book
-  async getCategories(accountBookId: string): Promise<{
+  async getCategories(accountBookId: string, accountIds?: string[]): Promise<{
     category: string;
     subCategories: string[];
   }[]> {
+    const params = new URLSearchParams();
+    if (accountIds && accountIds.length > 0) {
+      accountIds.forEach(id => params.append('accountIds', id));
+    }
+    const queryString = params.toString();
+    const url = `/api/account-books/${accountBookId}/categories${queryString ? `?${queryString}` : ''}`;
     const response = await apiClient.get<ApiResponse<{
       category: string;
       subCategories: string[];
-    }[]>>(`/api/account-books/${accountBookId}/categories`);
+    }[]>>(url);
     return response.data.data || [];
   },
 
