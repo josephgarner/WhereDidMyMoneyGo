@@ -99,10 +99,14 @@ export function ReportsPage() {
         if (selectedAccountIds.length > 0) {
           filters.accountIds = selectedAccountIds;
         }
-        if (selectedCategories.length > 0) {
+        // Don't send category/subcategory filters when all are selected —
+        // "select all" is the same as no filter, and sending all subcategories
+        // would exclude transactions with null/empty subcategories.
+        const allSubCategories = categoryData.flatMap((c) => c.subCategories);
+        if (selectedCategories.length > 0 && selectedCategories.length < categoryData.length) {
           filters.categories = selectedCategories;
         }
-        if (selectedSubCategories.length > 0) {
+        if (selectedSubCategories.length > 0 && selectedSubCategories.length < allSubCategories.length) {
           filters.subCategories = selectedSubCategories;
         }
         if (startDate) {
@@ -126,7 +130,7 @@ export function ReportsPage() {
     };
 
     fetchReportData();
-  }, [accountBookId, selectedAccountIds, selectedCategories, selectedSubCategories, startDate, endDate]);
+  }, [accountBookId, selectedAccountIds, selectedCategories, selectedSubCategories, categoryData, startDate, endDate]);
 
   const handleAccountChange = (values: string[]) => {
     setSelectedAccountIds(values);
