@@ -1,61 +1,24 @@
-import { useParams } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useParams } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Box,
   Heading,
   Text,
   VStack,
-  Card,
-  CardBody,
   Spinner,
   Grid,
   GridItem,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Badge,
-  IconButton,
   useToast,
-  HStack,
-  Button,
   useDisclosure,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-} from "@chakra-ui/react";
-import { FaTrash, FaPen, FaRotate } from "react-icons/fa6";
-import {
-  useAccounts,
-  useTransactions,
-  useTransactionMetadata,
-  useCategorySuggestions,
-} from "../../hooks";
-import {
-  TransactionDateFilter,
-  DateFilterValue,
-  TransactionCategoryFilter,
-  CategoryFilterValue,
-  AddTransactionForm,
-  UploadQIFForm,
-  AddAccountForm,
-  EditTransactionModal,
-} from "../../components/organisms";
-import { Pagination } from "../../components/molecules";
-import { TransactionFilters, accountBooksApi } from "../../api";
-import { useRef } from "react";
-import { Transaction } from "@finances/shared";
+} from '@chakra-ui/react';
+import { useAccounts } from '../../hooks';
+import { AccountSidebar, TransactionPanel } from '../../components/organisms';
+import { ConfirmDialog } from '../../components/molecules';
+import { accountBooksApi } from '../../api';
 
 export function AccountsPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
   const toast = useToast();
-  const cancelRef = useRef<HTMLButtonElement>(null);
 
   const {
     accounts,
@@ -63,114 +26,16 @@ export function AccountsPage() {
     error: accountsError,
     refetch: refetchAccounts,
   } = useAccounts(accountBookId || null);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
-    null
-  );
-  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
-    type: "all",
-  });
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilterValue>({
-    type: "all",
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
-  // Delete dialog state
-  const { isOpen: isDeleteAccountOpen, onOpen: onDeleteAccountOpen, onClose: onDeleteAccountClose } = useDisclosure();
-  const { isOpen: isDeleteTransactionOpen, onOpen: onDeleteTransactionOpen, onClose: onDeleteTransactionClose } = useDisclosure();
-  const { isOpen: isDeleteMonthOpen, onOpen: onDeleteMonthOpen, onClose: onDeleteMonthClose } = useDisclosure();
-  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
-  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
-
-  // Edit dialog state
-  const { isOpen: isEditTransactionOpen, onOpen: onEditTransactionOpen, onClose: onEditTransactionClose } = useDisclosure();
-  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
-
-  // Add transaction modal state
-  const { isOpen: isAddTransactionOpen, onOpen: onAddTransactionOpen, onClose: onAddTransactionClose } = useDisclosure();
-
-  // Upload QIF modal state
-  const { isOpen: isUploadQIFOpen, onOpen: onUploadQIFOpen, onClose: onUploadQIFClose } = useDisclosure();
-
-  // Recalculate balances state
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
+  const { isOpen: isDeleteAccountOpen, onOpen: onDeleteAccountOpen, onClose: onDeleteAccountClose } = useDisclosure();
 
-  // Get transaction metadata for the selected account
-  const { metadata } = useTransactionMetadata(selectedAccountId);
-
-  // Get category suggestions for the selected account
-  const { suggestions } = useCategorySuggestions(selectedAccountId);
-
-  // Reset to page 1 when account or date filter changes
   const handleAccountChange = (accountId: string) => {
     setSelectedAccountId(accountId);
-    setCategoryFilter({ type: "all" });
-    setCurrentPage(1);
   };
 
-  const handleDateFilterChange = (newFilter: DateFilterValue) => {
-    setDateFilter(newFilter);
-    setCurrentPage(1);
-  };
-
-  const handleCategoryFilterChange = (newFilter: CategoryFilterValue) => {
-    setCategoryFilter(newFilter);
-    setCurrentPage(1);
-  };
-
-  // Build filters for the transactions query
-  const transactionFilters: TransactionFilters | undefined = useMemo(() => {
-    const filters: TransactionFilters = {
-      page: currentPage,
-      limit: pageSize,
-    };
-
-    if (dateFilter.type === "month" && dateFilter.month) {
-      filters.month = dateFilter.month;
-    } else if (
-      dateFilter.type === "range" &&
-      dateFilter.startDate &&
-      dateFilter.endDate
-    ) {
-      filters.startDate = dateFilter.startDate;
-      filters.endDate = dateFilter.endDate;
-    }
-
-    if (categoryFilter.type === "category" && categoryFilter.category) {
-      filters.category = categoryFilter.category;
-    }
-
-    return filters;
-  }, [dateFilter, categoryFilter, currentPage, pageSize]);
-
-  const {
-    transactions,
-    pagination,
-    loading: transactionsLoading,
-    error: transactionsError,
-    refetch,
-  } = useTransactions(selectedAccountId, transactionFilters);
-
-  // Function to refresh transactions and accounts after adding a transaction
-  const handleTransactionAdded = () => {
-    refetch(); // Refresh transactions list
-    refetchAccounts(); // Refresh accounts list to update balance
-    onAddTransactionClose(); // Close add transaction modal
-  };
-
-  // Function to refresh after QIF upload
-  const handleQIFUploadSuccess = () => {
-    refetch();
-    refetchAccounts();
-    onUploadQIFClose(); // Close upload modal
-  };
-
-  // Function to refresh accounts after adding a new one
-  const handleAccountAdded = () => {
-    refetchAccounts();
-  };
-
-  // Recalculate balances handler
   const handleRecalculateBalances = async () => {
     if (!accountBookId) return;
 
@@ -184,7 +49,7 @@ export function AccountsPage() {
         duration: 5000,
         isClosable: true,
       });
-      refetchAccounts(); // Refresh to show updated balances
+      refetchAccounts();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -198,7 +63,6 @@ export function AccountsPage() {
     }
   };
 
-  // Delete account handlers
   const handleDeleteAccountClick = (accountId: string) => {
     setAccountToDelete(accountId);
     onDeleteAccountOpen();
@@ -217,7 +81,6 @@ export function AccountsPage() {
         isClosable: true,
       });
 
-      // Clear selection if deleted account was selected
       if (selectedAccountId === accountToDelete) {
         setSelectedAccountId(null);
       }
@@ -235,87 +98,9 @@ export function AccountsPage() {
     }
   };
 
-  // Edit transaction handlers
-  const handleEditTransactionClick = (transaction: Transaction) => {
-    setTransactionToEdit(transaction);
-    onEditTransactionOpen();
-  };
-
-  const handleEditTransactionSuccess = () => {
-    refetch();
-    refetchAccounts();
-    onEditTransactionClose();
-  };
-
-  // Delete transaction handlers
-  const handleDeleteTransactionClick = (transactionId: string) => {
-    setTransactionToDelete(transactionId);
-    onDeleteTransactionOpen();
-  };
-
-  const handleDeleteTransactionConfirm = async () => {
-    if (!selectedAccountId || !transactionToDelete) return;
-
-    try {
-      await accountBooksApi.deleteTransaction(selectedAccountId, transactionToDelete);
-      toast({
-        title: 'Transaction Deleted',
-        description: 'The transaction has been deleted',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-
-      refetch();
-      refetchAccounts();
-      onDeleteTransactionClose();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete transaction',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  // Delete transactions by month handler
-  const handleDeleteMonthConfirm = async () => {
-    if (!selectedAccountId || dateFilter.type !== 'month' || !dateFilter.month) return;
-
-    try {
-      const result = await accountBooksApi.deleteTransactionsByMonth(selectedAccountId, dateFilter.month);
-      toast({
-        title: 'Transactions Deleted',
-        description: `Deleted ${result.deletedCount} transaction(s) for ${dateFilter.month}`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-
-      refetch();
-      refetchAccounts();
-      onDeleteMonthClose();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete transactions',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
   if (accountsLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minH="50vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minH="50vh">
         <Spinner size="xl" color="teal.500" thickness="4px" />
       </Box>
     );
@@ -331,471 +116,47 @@ export function AccountsPage() {
 
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 
-  // Format dates for the date picker
-  const minDate = metadata.minDate ? metadata.minDate.split("T")[0] : undefined;
-  const maxDate = metadata.maxDate ? metadata.maxDate.split("T")[0] : undefined;
-
   return (
     <VStack spacing={6} align="stretch">
-      <HStack justify="space-between" align="center">
-        <Heading size="lg" color="cream.100">
-          Accounts
-        </Heading>
-        <Button
-          size="sm"
-          colorScheme="teal"
-          variant="outline"
-          leftIcon={<FaRotate />}
-          onClick={handleRecalculateBalances}
-          isLoading={isRecalculating}
-          loadingText="Recalculating..."
-        >
-          Recalculate Balances
-        </Button>
-      </HStack>
+      <Heading size="lg" color="cream.100">
+        Accounts
+      </Heading>
 
-      <Grid templateColumns={{ base: "1fr", lg: "350px 1fr" }} gap={2}>
+      <Grid templateColumns={{ base: '1fr', lg: '350px 1fr' }} gap={2}>
         <GridItem>
-          <VStack spacing={2} align="stretch">
-            {accountBookId && (
-              <AddAccountForm
-                accountBookId={accountBookId}
-                onSuccess={handleAccountAdded}
-              />
-            )}
-
-            {accounts.length === 0 ? (
-              <Card>
-                <CardBody>
-                  <Text color="cream.300" textAlign="center">
-                    No accounts yet. Create one above to get started.
-                  </Text>
-                </CardBody>
-              </Card>
-            ) : (
-              accounts.map((account) => (
-                <Card
-                  key={account.id}
-                  cursor="pointer"
-                  bg={selectedAccountId === account.id ? "teal.900" : undefined}
-                  borderColor={
-                    selectedAccountId === account.id ? "teal.500" : "navy.700"
-                  }
-                  borderWidth="2px"
-                  onClick={() => handleAccountChange(account.id)}
-                  _hover={{
-                    borderColor: "teal.600",
-                    transform: "translateY(-2px)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <CardBody>
-                    <HStack justify="space-between" align="start" mb={2}>
-                      <Heading size="sm" color="cream.100">
-                        {account.name}
-                      </Heading>
-                      <IconButton
-                        aria-label="Delete account"
-                        icon={<FaTrash />}
-                        size="xs"
-                        variant="ghost"
-                        colorScheme="red"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAccountClick(account.id);
-                        }}
-                      />
-                    </HStack>
-                    <VStack align="start" spacing={2}>
-                      <Text color="cream.300" fontSize="xs">
-                        Balance
-                      </Text>
-                      <Text color="teal.300" fontSize="lg" fontWeight="bold">
-                        ${parseFloat(account.totalMonthlyBalance).toFixed(2)}
-                      </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              ))
-            )}
-          </VStack>
+          {accountBookId && (
+            <AccountSidebar
+              accounts={accounts}
+              selectedAccountId={selectedAccountId}
+              onAccountSelect={handleAccountChange}
+              onAccountDelete={handleDeleteAccountClick}
+              accountBookId={accountBookId}
+              onAccountAdded={refetchAccounts}
+              onRecalculate={handleRecalculateBalances}
+              isRecalculating={isRecalculating}
+            />
+          )}
         </GridItem>
 
-          <GridItem>
-            <VStack spacing={2} align="stretch">
-              {selectedAccountId && (
-                <HStack spacing={2} wrap="wrap">
-                  <Button
-                    size="sm"
-                    colorScheme="teal"
-                    variant="solid"
-                    onClick={onAddTransactionOpen}
-                  >
-                    Add Transaction
-                  </Button>
-                  <Button
-                    size="sm"
-                    colorScheme="teal"
-                    variant="outline"
-                    onClick={onUploadQIFOpen}
-                  >
-                    Import QIF File
-                  </Button>
-                  {dateFilter.type === 'month' && dateFilter.month && (
-                    <Button
-                      size="sm"
-                      colorScheme="red"
-                      variant="outline"
-                      leftIcon={<FaTrash />}
-                      onClick={onDeleteMonthOpen}
-                    >
-                      Delete Month Transactions
-                    </Button>
-                  )}
-                </HStack>
-              )}
+        <GridItem>
+          {accountBookId && (
+            <TransactionPanel
+              selectedAccountId={selectedAccountId}
+              selectedAccountName={selectedAccount?.name}
+              accountBookId={accountBookId}
+              onTransactionChange={refetchAccounts}
+            />
+          )}
+        </GridItem>
+      </Grid>
 
-              {selectedAccountId && (metadata.availableMonths.length > 0 || suggestions.categories.length > 0) && (
-                <Grid
-                  templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
-                  gap={2}
-                >
-                  {metadata.availableMonths.length > 0 && (
-                    <GridItem>
-                      <TransactionDateFilter
-                        availableMonths={metadata.availableMonths}
-                        minDate={minDate}
-                        maxDate={maxDate}
-                        value={dateFilter}
-                        onChange={handleDateFilterChange}
-                      />
-                    </GridItem>
-                  )}
-
-                  {suggestions.categories.length > 0 && (
-                    <GridItem>
-                      <TransactionCategoryFilter
-                        availableCategories={suggestions.categories}
-                        value={categoryFilter}
-                        onChange={handleCategoryFilterChange}
-                      />
-                    </GridItem>
-                  )}
-                </Grid>
-              )}
-
-              <Card minH="100px">
-                <CardBody position="relative">
-                  {!selectedAccountId ? (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      minH="400px"
-                    >
-                      <Text color="cream.400">
-                        Select an account to view transactions
-                      </Text>
-                    </Box>
-                  ) : transactionsError ? (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      minH="400px"
-                    >
-                      <Text color="coral.500">Error: {transactionsError}</Text>
-                    </Box>
-                  ) : transactions.length === 0 && transactionsLoading ? (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      minH="400px"
-                    >
-                      <Spinner size="lg" color="teal.500" thickness="3px" />
-                    </Box>
-                  ) : (
-                    <Box position="relative">
-                      {transactionsLoading && (
-                        <Box
-                          position="absolute"
-                          top={0}
-                          left={0}
-                          right={0}
-                          bottom={0}
-                          bg="rgba(26, 35, 50, 0.7)"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                          zIndex={10}
-                          borderRadius="md"
-                        >
-                          <Spinner size="lg" color="teal.500" thickness="3px" />
-                        </Box>
-                      )}
-                      <VStack align="stretch" spacing={4}>
-                        <Heading size="md" color="cream.100">
-                          {selectedAccount?.name} - Transactions
-                        </Heading>
-
-                        {transactions.length === 0 ? (
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            minH="300px"
-                          >
-                            <Text color="cream.400">
-                              No transactions found for this account
-                            </Text>
-                          </Box>
-                        ) : (
-                          <TableContainer>
-                            <Table variant="simple" size="sm">
-                              <Thead>
-                                <Tr>
-                                  <Th color="cream.300" width="110px">
-                                    Date
-                                  </Th>
-                                  <Th color="cream.300" width="250px">
-                                    Description
-                                  </Th>
-                                  <Th color="cream.300" width="150px">
-                                    Category
-                                  </Th>
-                                  <Th color="cream.300" width="100px" isNumeric>
-                                    Debit
-                                  </Th>
-                                  <Th color="cream.300" width="100px" isNumeric>
-                                    Credit
-                                  </Th>
-                                  <Th color="cream.300" width="80px"></Th>
-                                </Tr>
-                              </Thead>
-                              <Tbody>
-                                {transactions.map((transaction) => (
-                                  <Tr key={transaction.id}>
-                                    <Td color="cream.200" width="110px">
-                                      {new Date(
-                                        transaction.transactionDate
-                                      ).toLocaleDateString()}
-                                    </Td>
-                                    <Td
-                                      color="cream.200"
-                                      width="250px"
-                                      maxW="250px"
-                                    >
-                                      <Text
-                                        whiteSpace="normal"
-                                        wordBreak="break-word"
-                                        noOfLines={2}
-                                        title={transaction.description}
-                                      >
-                                        {transaction.description}
-                                      </Text>
-                                    </Td>
-                                    <Td width="150px">
-                                      <VStack align="start" spacing={1}>
-                                        <Badge colorScheme="teal" fontSize="xs">
-                                          {transaction.category}
-                                        </Badge>
-                                        {transaction.subCategory && (
-                                          <Badge
-                                            colorScheme="purple"
-                                            fontSize="xs"
-                                          >
-                                            {transaction.subCategory}
-                                          </Badge>
-                                        )}
-                                      </VStack>
-                                    </Td>
-                                    <Td
-                                      color="coral.400"
-                                      width="100px"
-                                      isNumeric
-                                      fontWeight="medium"
-                                    >
-                                      {parseFloat(transaction.debitAmount) > 0
-                                        ? `$${parseFloat(
-                                            transaction.debitAmount
-                                          ).toFixed(2)}`
-                                        : "-"}
-                                    </Td>
-                                    <Td
-                                      color="powder.400"
-                                      width="100px"
-                                      isNumeric
-                                      fontWeight="medium"
-                                    >
-                                      {parseFloat(transaction.creditAmount) > 0
-                                        ? `$${parseFloat(
-                                            transaction.creditAmount
-                                          ).toFixed(2)}`
-                                        : "-"}
-                                    </Td>
-                                    <Td width="80px">
-                                      <HStack spacing={1}>
-                                        <IconButton
-                                          aria-label="Edit transaction"
-                                          icon={<FaPen />}
-                                          size="xs"
-                                          variant="ghost"
-                                          colorScheme="teal"
-                                          onClick={() => handleEditTransactionClick(transaction)}
-                                        />
-                                        <IconButton
-                                          aria-label="Delete transaction"
-                                          icon={<FaTrash />}
-                                          size="xs"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() => handleDeleteTransactionClick(transaction.id)}
-                                        />
-                                      </HStack>
-                                    </Td>
-                                  </Tr>
-                                ))}
-                              </Tbody>
-                            </Table>
-                          </TableContainer>
-                        )}
-
-                        {pagination && pagination.totalPages > 1 && (
-                          <Pagination
-                            currentPage={pagination.page}
-                            totalPages={pagination.totalPages}
-                            totalCount={pagination.totalCount}
-                            pageSize={pagination.limit}
-                            onPageChange={setCurrentPage}
-                            onPageSizeChange={(size) => {
-                              setPageSize(size);
-                              setCurrentPage(1);
-                            }}
-                          />
-                        )}
-                      </VStack>
-                    </Box>
-                  )}
-                </CardBody>
-              </Card>
-            </VStack>
-          </GridItem>
-        </Grid>
-
-      {/* Delete Account Confirmation Dialog */}
-      <AlertDialog
+      <ConfirmDialog
         isOpen={isDeleteAccountOpen}
-        leastDestructiveRef={cancelRef}
         onClose={onDeleteAccountClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg="navy.800" borderColor="navy.700">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
-              Delete Account
-            </AlertDialogHeader>
-
-            <AlertDialogBody color="cream.300">
-              Are you sure? This will permanently delete the account and all its transactions. This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteAccountClose} variant="outline" colorScheme="gray">
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteAccountConfirm} ml={3}>
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-
-      {/* Delete Transaction Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isDeleteTransactionOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onDeleteTransactionClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg="navy.800" borderColor="navy.700">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
-              Delete Transaction
-            </AlertDialogHeader>
-
-            <AlertDialogBody color="cream.300">
-              Are you sure? This will permanently delete this transaction. This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteTransactionClose} variant="outline" colorScheme="gray">
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteTransactionConfirm} ml={3}>
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-
-      {/* Delete Month Transactions Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isDeleteMonthOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onDeleteMonthClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg="navy.800" borderColor="navy.700">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
-              Delete Month Transactions
-            </AlertDialogHeader>
-
-            <AlertDialogBody color="cream.300">
-              Are you sure? This will permanently delete all transactions for {dateFilter.type === 'month' ? dateFilter.month : 'this month'}. This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteMonthClose} variant="outline" colorScheme="gray">
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteMonthConfirm} ml={3}>
-                Delete All
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-
-      {/* Edit Transaction Modal */}
-      {transactionToEdit && (
-        <EditTransactionModal
-          isOpen={isEditTransactionOpen}
-          onClose={onEditTransactionClose}
-          transaction={transactionToEdit}
-          onSuccess={handleEditTransactionSuccess}
-        />
-      )}
-
-      {/* Add Transaction Modal */}
-      {selectedAccountId && (
-        <AddTransactionForm
-          isOpen={isAddTransactionOpen}
-          onClose={onAddTransactionClose}
-          accountId={selectedAccountId}
-          onSuccess={handleTransactionAdded}
-        />
-      )}
-
-      {/* Upload QIF Modal */}
-      {selectedAccountId && (
-        <UploadQIFForm
-          isOpen={isUploadQIFOpen}
-          onClose={onUploadQIFClose}
-          accountId={selectedAccountId}
-          onSuccess={handleQIFUploadSuccess}
-        />
-      )}
+        onConfirm={handleDeleteAccountConfirm}
+        title="Delete Account"
+        message="Are you sure? This will permanently delete the account and all its transactions. This action cannot be undone."
+      />
     </VStack>
   );
 }

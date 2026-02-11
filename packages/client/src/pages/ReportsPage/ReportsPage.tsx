@@ -229,7 +229,33 @@ export function ReportsPage() {
                   {categoryData.length === 0 ? (
                     <Text color="cream.400" fontSize="sm">No categories available</Text>
                   ) : (
-                    <Stack spacing={1} maxH="400px" overflowY="auto">
+                    <Stack spacing={1}>
+                      <Checkbox
+                        isChecked={
+                          categoryData.length > 0 &&
+                          selectedCategories.length === categoryData.length &&
+                          selectedSubCategories.length === categoryData.flatMap((c) => c.subCategories).length
+                        }
+                        isIndeterminate={
+                          (selectedCategories.length > 0 || selectedSubCategories.length > 0) &&
+                          !(
+                            selectedCategories.length === categoryData.length &&
+                            selectedSubCategories.length === categoryData.flatMap((c) => c.subCategories).length
+                          )
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories(categoryData.map((c) => c.category));
+                            setSelectedSubCategories(categoryData.flatMap((c) => c.subCategories));
+                          } else {
+                            setSelectedCategories([]);
+                            setSelectedSubCategories([]);
+                          }
+                        }}
+                        colorScheme="teal"
+                      >
+                        <Text fontSize="sm" color="cream.200" fontWeight="medium">Select All</Text>
+                      </Checkbox>
                       {categoryData.map((cat) => (
                         <Box key={cat.category}>
                           <Checkbox

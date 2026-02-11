@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Box,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   Button,
   FormControl,
   FormLabel,
@@ -8,21 +14,23 @@ import {
   VStack,
   HStack,
   useToast,
-  Collapse,
-  Text,
-  IconButton,
   FormHelperText,
 } from '@chakra-ui/react';
-import { FaPlus, FaMinus } from 'react-icons/fa6';
 import { accountBooksApi, CreateAccountData } from '../../api';
 
 export interface AddAccountFormProps {
+  isOpen: boolean;
+  onClose: () => void;
   accountBookId: string;
   onSuccess: () => void;
 }
 
-export function AddAccountForm({ accountBookId, onSuccess }: AddAccountFormProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function AddAccountForm({
+  isOpen,
+  onClose,
+  accountBookId,
+  onSuccess,
+}: AddAccountFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
 
@@ -30,6 +38,13 @@ export function AddAccountForm({ accountBookId, onSuccess }: AddAccountFormProps
     name: '',
     startingBalance: '',
   });
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({ name: '', startingBalance: '' });
+    }
+  }, [isOpen]);
 
   const handleChange = (field: keyof CreateAccountData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -65,13 +80,7 @@ export function AddAccountForm({ accountBookId, onSuccess }: AddAccountFormProps
         isClosable: true,
       });
 
-      // Reset form
-      setFormData({
-        name: '',
-        startingBalance: '',
-      });
-
-      setIsOpen(false);
+      onClose();
       onSuccess();
     } catch (error: any) {
       toast({
@@ -87,86 +96,79 @@ export function AddAccountForm({ accountBookId, onSuccess }: AddAccountFormProps
   };
 
   return (
-    <Box
-      p={4}
-      bg="navy.800"
-      borderRadius="md"
-      borderWidth="1px"
-      borderColor="navy.700"
-    >
-      <HStack justify="space-between" mb={isOpen ? 4 : 0}>
-        <Text fontWeight="bold" color="cream.100" fontSize="sm">
-          Add Account
-        </Text>
-        <IconButton
-          aria-label={isOpen ? 'Close form' : 'Open form'}
-          icon={isOpen ? <FaMinus /> : <FaPlus />}
-          size="sm"
-          variant="ghost"
-          colorScheme="teal"
-          onClick={() => setIsOpen(!isOpen)}
-        />
-      </HStack>
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <ModalOverlay />
+      <ModalContent bg="navy.800" borderColor="navy.700" borderWidth="1px">
+        <ModalHeader color="cream.100">Add Account</ModalHeader>
+        <ModalCloseButton color="cream.100" />
+        <ModalBody>
+          <form onSubmit={handleSubmit}>
+            <VStack spacing={3} align="stretch">
+              <FormControl isRequired>
+                <FormLabel color="cream.300" fontSize="sm">
+                  Account Name
+                </FormLabel>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  placeholder="e.g., Checking, Savings, Credit Card"
+                  size="sm"
+                  bg="navy.900"
+                  borderColor="navy.700"
+                  color="cream.100"
+                  _hover={{ borderColor: 'teal.500' }}
+                  _placeholder={{ color: 'cream.500' }}
+                />
+              </FormControl>
 
-      <Collapse in={isOpen} animateOpacity>
-        <form onSubmit={handleSubmit}>
-          <VStack spacing={3} align="stretch">
-            <FormControl isRequired>
-              <FormLabel color="cream.300" fontSize="sm">Account Name</FormLabel>
-              <Input
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="e.g., Checking, Savings, Credit Card"
-                size="sm"
-                bg="navy.900"
-                borderColor="navy.700"
-                color="cream.100"
-                _hover={{ borderColor: 'teal.500' }}
-                _placeholder={{ color: 'cream.500' }}
-              />
-            </FormControl>
+              <FormControl>
+                <FormLabel color="cream.300" fontSize="sm">
+                  Starting Balance
+                </FormLabel>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.startingBalance}
+                  onChange={(e) =>
+                    handleChange('startingBalance', e.target.value)
+                  }
+                  placeholder="0.00"
+                  size="sm"
+                  bg="navy.900"
+                  borderColor="navy.700"
+                  color="cream.100"
+                  _hover={{ borderColor: 'teal.500' }}
+                  _placeholder={{ color: 'cream.500' }}
+                />
+                <FormHelperText color="cream.500" fontSize="xs">
+                  Optional: Enter the account's current balance
+                </FormHelperText>
+              </FormControl>
+            </VStack>
+          </form>
+        </ModalBody>
 
-            <FormControl>
-              <FormLabel color="cream.300" fontSize="sm">Starting Balance</FormLabel>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.startingBalance}
-                onChange={(e) => handleChange('startingBalance', e.target.value)}
-                placeholder="0.00"
-                size="sm"
-                bg="navy.900"
-                borderColor="navy.700"
-                color="cream.100"
-                _hover={{ borderColor: 'teal.500' }}
-                _placeholder={{ color: 'cream.500' }}
-              />
-              <FormHelperText color="cream.500" fontSize="xs">
-                Optional: Enter the account's current balance
-              </FormHelperText>
-            </FormControl>
-
-            <HStack spacing={3} justify="flex-end" pt={2}>
-              <Button
-                size="sm"
-                variant="outline"
-                colorScheme="teal"
-                onClick={() => setIsOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                type="submit"
-                colorScheme="teal"
-                isLoading={isSubmitting}
-              >
-                Create Account
-              </Button>
-            </HStack>
-          </VStack>
-        </form>
-      </Collapse>
-    </Box>
+        <ModalFooter>
+          <HStack spacing={3}>
+            <Button
+              size="sm"
+              variant="outline"
+              colorScheme="teal"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              colorScheme="teal"
+              isLoading={isSubmitting}
+              onClick={handleSubmit}
+            >
+              Create Account
+            </Button>
+          </HStack>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }

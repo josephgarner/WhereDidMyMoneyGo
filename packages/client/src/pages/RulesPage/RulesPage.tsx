@@ -27,12 +27,20 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Tag,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import { FaTrash, FaPen, FaPlus } from "react-icons/fa6";
 import { useRules } from "../../hooks";
 import { accountBooksApi } from "../../api";
 import { CategoryRule } from "@finances/shared";
 import { AddRuleModal, EditRuleModal } from "../../components/organisms";
+
+interface GroupedCategory {
+  category: string;
+  rules: CategoryRule[];
+}
 
 export function RulesPage() {
   const { accountBookId } = useParams<{ accountBookId: string }>();
@@ -41,12 +49,28 @@ export function RulesPage() {
 
   const { rules, loading, error, refetch } = useRules(accountBookId || null);
 
-  const sortedRules = useMemo(() => {
-    return [...rules].sort((a, b) => {
+  const groupedRules = useMemo<GroupedCategory[]>(() => {
+    const groups = new Map<string, CategoryRule[]>();
+
+    const sorted = [...rules].sort((a, b) => {
       const catCmp = a.category.localeCompare(b.category);
       if (catCmp !== 0) return catCmp;
-      return (a.subCategory || '').localeCompare(b.subCategory || '');
+      return (a.subCategory || "").localeCompare(b.subCategory || "");
     });
+
+    for (const rule of sorted) {
+      const existing = groups.get(rule.category);
+      if (existing) {
+        existing.push(rule);
+      } else {
+        groups.set(rule.category, [rule]);
+      }
+    }
+
+    return Array.from(groups.entries()).map(([category, rules]) => ({
+      category,
+      rules,
+    }));
   }, [rules]);
 
   // Delete dialog state
@@ -129,7 +153,8 @@ export function RulesPage() {
     try {
       setIsApplyingRules(true);
 
-      const result = await accountBooksApi.applyRulesToAllTransactions(accountBookId);
+      const result =
+        await accountBooksApi.applyRulesToAllTransactions(accountBookId);
 
       toast({
         title: "Rules Applied",
@@ -139,6 +164,7 @@ export function RulesPage() {
         isClosable: true,
       });
 
+      refetch();
       onApplyRulesClose();
     } catch (error: any) {
       toast({
@@ -227,8 +253,7 @@ export function RulesPage() {
               <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
-                    <Th color="cream.300">Keyword</Th>
-                    <Th color="cream.300">Category</Th>
+                    <Th color="cream.300">Keywords</Th>
                     <Th color="cream.300">Subcategory</Th>
                     <Th color="cream.300" width="100px">
                       Actions
@@ -236,44 +261,78 @@ export function RulesPage() {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {sortedRules.map((rule) => (
-                    <Tr key={rule.id}>
-                      <Td color="cream.200" fontWeight="medium" whiteSpace="normal" wordBreak="break-word">
-                        {rule.keyword}
-                      </Td>
-                      <Td>
-                        <Badge colorScheme="teal" fontSize="xs">
-                          {rule.category}
-                        </Badge>
-                      </Td>
-                      <Td>
-                        {rule.subCategory && (
-                          <Badge colorScheme="purple" fontSize="xs">
-                            {rule.subCategory}
-                          </Badge>
-                        )}
-                      </Td>
-                      <Td width="100px">
-                        <HStack spacing={1}>
-                          <IconButton
-                            aria-label="Edit rule"
-                            icon={<FaPen />}
-                            size="xs"
-                            variant="ghost"
-                            colorScheme="teal"
-                            onClick={() => handleEditClick(rule)}
-                          />
-                          <IconButton
-                            aria-label="Delete rule"
-                            icon={<FaTrash />}
-                            size="xs"
-                            variant="ghost"
-                            colorScheme="red"
-                            onClick={() => handleDeleteClick(rule.id)}
-                          />
-                        </HStack>
-                      </Td>
-                    </Tr>
+                  {groupedRules.map((group) => (
+                    <>
+                      <Tr key={`cat-${group.category}`}>
+                        <Td
+                          colSpan={3}
+                          bg="whiteAlpha.50"
+                          borderLeft="3px solid"
+                          borderLeftColor="teal.500"
+                          py={2}
+                        >
+                          <HStack spacing={2}>
+                            <Badge colorScheme="teal" fontSize="xs">
+                              {group.category}
+                            </Badge>
+                            <Text color="cream.500" fontSize="xs">
+                              {group.rules.length}{" "}
+                              {group.rules.length === 1 ? "rule" : "rules"}
+                            </Text>
+                          </HStack>
+                        </Td>
+                      </Tr>
+                      {group.rules.map((rule) => (
+                        <Tr key={rule.id}>
+                          <Td whiteSpace="normal" wordBreak="break-word" pl={6}>
+                            <Wrap spacing={1}>
+                              {rule.keyword
+                                .split(",")
+                                .map((kw) => kw.trim())
+                                .filter(Boolean)
+                                .map((kw, idx) => (
+                                  <WrapItem key={idx}>
+                                    <Tag
+                                      size="sm"
+                                      colorScheme="teal"
+                                      variant="subtle"
+                                    >
+                                      {kw}
+                                    </Tag>
+                                  </WrapItem>
+                                ))}
+                            </Wrap>
+                          </Td>
+                          <Td>
+                            {rule.subCategory && (
+                              <Badge colorScheme="purple" fontSize="xs">
+                                {rule.subCategory}
+                              </Badge>
+                            )}
+                          </Td>
+                          <Td width="100px">
+                            <HStack spacing={1}>
+                              <IconButton
+                                aria-label="Edit rule"
+                                icon={<FaPen />}
+                                size="xs"
+                                variant="ghost"
+                                colorScheme="teal"
+                                onClick={() => handleEditClick(rule)}
+                              />
+                              <IconButton
+                                aria-label="Delete rule"
+                                icon={<FaTrash />}
+                                size="xs"
+                                variant="ghost"
+                                colorScheme="red"
+                                onClick={() => handleDeleteClick(rule.id)}
+                              />
+                            </HStack>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </>
                   ))}
                 </Tbody>
               </Table>
@@ -290,7 +349,11 @@ export function RulesPage() {
       >
         <AlertDialogOverlay>
           <AlertDialogContent bg="navy.800" borderColor="navy.700">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+            <AlertDialogHeader
+              fontSize="lg"
+              fontWeight="bold"
+              color="cream.100"
+            >
               Delete Rule
             </AlertDialogHeader>
 
@@ -345,7 +408,11 @@ export function RulesPage() {
       >
         <AlertDialogOverlay>
           <AlertDialogContent bg="navy.800" borderColor="navy.700">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="cream.100">
+            <AlertDialogHeader
+              fontSize="lg"
+              fontWeight="bold"
+              color="cream.100"
+            >
               Apply Rules to All Transactions
             </AlertDialogHeader>
 
