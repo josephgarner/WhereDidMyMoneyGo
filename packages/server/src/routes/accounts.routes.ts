@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, accounts, transactions } from '../db';
-import { eq, desc, sql, gte, lte, and } from 'drizzle-orm';
+import { eq, desc, sql, gte, lte, and, inArray } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ApiResponse } from '@finances/shared';
 import multer from 'multer';
@@ -520,6 +520,74 @@ router.put('/:accountId/transactions/:transactionId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update transaction',
+    });
+  }
+});
+
+// PATCH /api/accounts/:accountId/transactions/bulk/update-category - Bulk update category for multiple transactions
+router.patch('/:accountId/transactions/bulk/update-category', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { transactionIds, category, subCategory } = req.body;
+
+    // Validate required fields
+    if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'transactionIds must be a non-empty array',
+      });
+    }
+
+    if (!category || typeof category !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'category is required',
+      });
+    }
+
+    // Verify account exists
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (account.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    // Update all matching transactions
+    const result = await db
+      .update(transactions)
+      .set({
+        category,
+        subCategory: subCategory || '',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(transactions.accountId, accountId),
+          inArray(transactions.id, transactionIds)
+        )
+      )
+      .returning();
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        updatedCount: result.length,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Error bulk updating transaction categories', { accountId: req.params.accountId, error });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to bulk update transaction categories',
     });
   }
 });

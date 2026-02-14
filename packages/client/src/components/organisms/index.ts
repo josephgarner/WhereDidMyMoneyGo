@@ -44,3 +44,5 @@ export { AccountSidebar } from './AccountSidebar';
 export type { AccountSidebarProps } from './AccountSidebar';
 export { TransactionPanel } from './TransactionPanel';
 export type { TransactionPanelProps } from './TransactionPanel';
+export { BulkUpdateCategoryModal } from './BulkUpdateCategoryModal';
+export type { BulkUpdateCategoryModalProps } from './BulkUpdateCategoryModal';

@@ -342,6 +342,20 @@ export const accountBooksApi = {
     await apiClient.delete(`/api/accounts/${accountId}/transactions/${transactionId}`);
   },
 
+  async bulkUpdateTransactionCategory(
+    accountId: string,
+    data: { transactionIds: string[]; category: string; subCategory: string }
+  ): Promise<{ updatedCount: number }> {
+    const response = await apiClient.patch<ApiResponse<{ updatedCount: number }>>(
+      `/api/accounts/${accountId}/transactions/bulk/update-category`,
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('No data returned from bulk update');
+    }
+    return response.data.data;
+  },
+
   async deleteTransactionsByMonth(accountId: string, month: string): Promise<{ deletedCount: number }> {
     const response = await apiClient.delete<ApiResponse<{ deletedCount: number }>>(
       `/api/accounts/${accountId}/transactions/bulk/by-month?month=${month}`

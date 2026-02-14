@@ -41,6 +41,14 @@ export function TransactionDateFilter({
   const [startDate, setStartDate] = useState(value.startDate || '');
   const [endDate, setEndDate] = useState(value.endDate || '');
 
+  // Sync internal state from parent value prop
+  useEffect(() => {
+    setFilterType(value.type);
+    setSelectedMonth(value.month || '');
+    setStartDate(value.startDate || '');
+    setEndDate(value.endDate || '');
+  }, [value.type, value.month, value.startDate, value.endDate]);
+
   useEffect(() => {
     // Update parent when filter changes
     const newValue: DateFilterValue = { type: filterType };

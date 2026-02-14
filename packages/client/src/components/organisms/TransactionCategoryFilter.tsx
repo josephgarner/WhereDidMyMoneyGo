@@ -31,6 +31,12 @@ export function TransactionCategoryFilter({
   const [filterType, setFilterType] = useState<'all' | 'category'>(value.type);
   const [selectedCategory, setSelectedCategory] = useState(value.category || '');
 
+  // Sync internal state from parent value prop
+  useEffect(() => {
+    setFilterType(value.type);
+    setSelectedCategory(value.category || '');
+  }, [value.type, value.category]);
+
   useEffect(() => {
     // Update parent when filter changes
     const newValue: CategoryFilterValue = { type: filterType };

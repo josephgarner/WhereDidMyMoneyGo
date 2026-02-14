@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -20,6 +20,7 @@ import {
   IconButton,
   HStack,
   Button,
+  Checkbox,
   useToast,
   useDisclosure,
 } from '@chakra-ui/react';
@@ -38,6 +39,7 @@ import {
   AddTransactionForm,
   EditTransactionModal,
   UploadQIFForm,
+  BulkUpdateCategoryModal,
 } from './index';
 import { Pagination } from '../molecules';
 import { ConfirmDialog } from '../molecules';
@@ -71,28 +73,34 @@ export function TransactionPanel({
   const { isOpen: isDeleteTransactionOpen, onOpen: onDeleteTransactionOpen, onClose: onDeleteTransactionClose } = useDisclosure();
   const { isOpen: isDeleteMonthOpen, onOpen: onDeleteMonthOpen, onClose: onDeleteMonthClose } = useDisclosure();
 
+  const { isOpen: isBulkUpdateOpen, onOpen: onBulkUpdateOpen, onClose: onBulkUpdateClose } = useDisclosure();
+
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
 
   // Hooks
   const { metadata } = useTransactionMetadata(selectedAccountId);
   const { suggestions } = useCategorySuggestions(selectedAccountId);
 
-  // Reset filters when account changes
+  // Reset filters and selection when account changes
   useEffect(() => {
     setDateFilter({ type: 'all' });
     setCategoryFilter({ type: 'all' });
     setCurrentPage(1);
+    setSelectedTransactionIds(new Set());
   }, [selectedAccountId]);
 
   const handleDateFilterChange = (newFilter: DateFilterValue) => {
     setDateFilter(newFilter);
     setCurrentPage(1);
+    setSelectedTransactionIds(new Set());
   };
 
   const handleCategoryFilterChange = (newFilter: CategoryFilterValue) => {
     setCategoryFilter(newFilter);
     setCurrentPage(1);
+    setSelectedTransactionIds(new Set());
   };
 
   // Build filters
@@ -206,6 +214,74 @@ export function TransactionPanel({
       });
     }
   };
+
+  // Selection handlers
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedTransactionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedTransactionIds((prev) => {
+      const allOnPage = transactions.map((t) => t.id);
+      const allSelected = allOnPage.length > 0 && allOnPage.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        allOnPage.forEach((id) => next.delete(id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        allOnPage.forEach((id) => next.add(id));
+        return next;
+      }
+    });
+  }, [transactions]);
+
+  const handleBulkUpdateSubmit = async (category: string, subCategory: string) => {
+    if (!selectedAccountId || selectedTransactionIds.size === 0) return;
+
+    try {
+      const result = await accountBooksApi.bulkUpdateTransactionCategory(
+        selectedAccountId,
+        {
+          transactionIds: Array.from(selectedTransactionIds),
+          category,
+          subCategory,
+        }
+      );
+      toast({
+        title: 'Categories Updated',
+        description: `Updated ${result.updatedCount} transaction(s)`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      setSelectedTransactionIds(new Set());
+      onBulkUpdateClose();
+      refetch();
+      onTransactionChange();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update categories',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedTransactionIds(new Set());
+  }, [currentPage, pageSize]);
 
   const minDate = metadata.minDate ? metadata.minDate.split('T')[0] : undefined;
   const maxDate = metadata.maxDate ? metadata.maxDate.split('T')[0] : undefined;
@@ -321,9 +397,33 @@ export function TransactionPanel({
                 </Box>
               )}
               <VStack align="stretch" spacing={4}>
-                <Heading size="md" color="cream.100">
-                  {selectedAccountName} - Transactions
-                </Heading>
+                <HStack justify="space-between" align="center">
+                  <Heading size="md" color="cream.100">
+                    {selectedAccountName} - Transactions
+                  </Heading>
+                  {selectedTransactionIds.size > 0 && (
+                    <HStack spacing={2}>
+                      <Text color="cream.300" fontSize="sm">
+                        {selectedTransactionIds.size} selected
+                      </Text>
+                      <Button
+                        size="sm"
+                        colorScheme="teal"
+                        onClick={onBulkUpdateOpen}
+                      >
+                        Update Category
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="teal"
+                        onClick={() => setSelectedTransactionIds(new Set())}
+                      >
+                        Clear
+                      </Button>
+                    </HStack>
+                  )}
+                </HStack>
 
                 {transactions.length === 0 ? (
                   <Box
@@ -347,6 +447,20 @@ export function TransactionPanel({
                           <Th color="cream.300" width="100px" isNumeric>Debit</Th>
                           <Th color="cream.300" width="100px" isNumeric>Credit</Th>
                           <Th color="cream.300" width="80px"></Th>
+                          <Th color="cream.300" width="40px" px={2}>
+                            <Checkbox
+                              colorScheme="teal"
+                              isChecked={
+                                transactions.length > 0 &&
+                                transactions.every((t) => selectedTransactionIds.has(t.id))
+                              }
+                              isIndeterminate={
+                                transactions.some((t) => selectedTransactionIds.has(t.id)) &&
+                                !transactions.every((t) => selectedTransactionIds.has(t.id))
+                              }
+                              onChange={handleToggleSelectAll}
+                            />
+                          </Th>
                         </Tr>
                       </Thead>
                       <Tbody>
@@ -406,6 +520,13 @@ export function TransactionPanel({
                                   onClick={() => handleDeleteTransactionClick(transaction.id)}
                                 />
                               </HStack>
+                            </Td>
+                            <Td width="40px" px={2}>
+                              <Checkbox
+                                colorScheme="teal"
+                                isChecked={selectedTransactionIds.has(transaction.id)}
+                                onChange={() => handleToggleSelect(transaction.id)}
+                              />
                             </Td>
                           </Tr>
                         ))}
@@ -482,6 +603,15 @@ export function TransactionPanel({
         title="Delete Month Transactions"
         message={`Are you sure? This will permanently delete all transactions for ${dateFilter.type === 'month' ? dateFilter.month : 'this month'}. This action cannot be undone.`}
         confirmLabel="Delete All"
+      />
+
+      {/* Bulk Update Category Modal */}
+      <BulkUpdateCategoryModal
+        isOpen={isBulkUpdateOpen}
+        onClose={onBulkUpdateClose}
+        accountBookId={accountBookId}
+        selectedCount={selectedTransactionIds.size}
+        onSubmit={handleBulkUpdateSubmit}
       />
     </VStack>
   );
