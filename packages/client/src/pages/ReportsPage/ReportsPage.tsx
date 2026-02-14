@@ -55,6 +55,7 @@ export function ReportsPage() {
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>(getSixMonthsAgo());
   const [endDate, setEndDate] = useState<string>(getToday());
+  const [excludeTransfers, setExcludeTransfers] = useState<boolean>(true);
   const [categoryData, setCategoryData] = useState<CategoryWithSubs[]>([]);
   const [reportData, setReportData] = useState<CategoryReportData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -116,6 +117,16 @@ export function ReportsPage() {
           filters.endDate = endDate;
         }
 
+        // Exclude transfer categories when the toggle is on
+        if (excludeTransfers) {
+          const transferCats = categoryData
+            .map((c) => c.category)
+            .filter((c) => c.toLowerCase().includes('transfer'));
+          if (transferCats.length > 0) {
+            filters.excludeCategories = transferCats;
+          }
+        }
+
         const data = await accountBooksApi.getCategoryReportData(
           accountBookId,
           filters
@@ -130,7 +141,7 @@ export function ReportsPage() {
     };
 
     fetchReportData();
-  }, [accountBookId, selectedAccountIds, selectedCategories, selectedSubCategories, categoryData, startDate, endDate]);
+  }, [accountBookId, selectedAccountIds, selectedCategories, selectedSubCategories, categoryData, startDate, endDate, excludeTransfers]);
 
   const handleAccountChange = (values: string[]) => {
     setSelectedAccountIds(values);
@@ -225,6 +236,19 @@ export function ReportsPage() {
               </CardBody>
             </Card>
 
+            {/* Exclude Transfers Toggle */}
+            <Card>
+              <CardBody>
+                <Checkbox
+                  isChecked={excludeTransfers}
+                  onChange={(e) => setExcludeTransfers(e.target.checked)}
+                  colorScheme="teal"
+                >
+                  <Text fontSize="sm" color="cream.200">Exclude Transfers</Text>
+                </Checkbox>
+              </CardBody>
+            </Card>
+
             {/* Category & Subcategory Filter */}
             <Card>
               <CardBody>
@@ -234,23 +258,31 @@ export function ReportsPage() {
                     <Text color="cream.400" fontSize="sm">No categories available</Text>
                   ) : (
                     <Stack spacing={1}>
+                      {(() => {
+                        const visibleCategories = excludeTransfers
+                          ? categoryData.filter((c) => !c.category.toLowerCase().includes('transfer'))
+                          : categoryData;
+                        const allVisibleSubs = visibleCategories.flatMap((c) => c.subCategories);
+
+                        return (
+                          <>
                       <Checkbox
                         isChecked={
-                          categoryData.length > 0 &&
-                          selectedCategories.length === categoryData.length &&
-                          selectedSubCategories.length === categoryData.flatMap((c) => c.subCategories).length
+                          visibleCategories.length > 0 &&
+                          selectedCategories.length === visibleCategories.length &&
+                          selectedSubCategories.length === allVisibleSubs.length
                         }
                         isIndeterminate={
                           (selectedCategories.length > 0 || selectedSubCategories.length > 0) &&
                           !(
-                            selectedCategories.length === categoryData.length &&
-                            selectedSubCategories.length === categoryData.flatMap((c) => c.subCategories).length
+                            selectedCategories.length === visibleCategories.length &&
+                            selectedSubCategories.length === allVisibleSubs.length
                           )
                         }
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedCategories(categoryData.map((c) => c.category));
-                            setSelectedSubCategories(categoryData.flatMap((c) => c.subCategories));
+                            setSelectedCategories(visibleCategories.map((c) => c.category));
+                            setSelectedSubCategories(allVisibleSubs);
                           } else {
                             setSelectedCategories([]);
                             setSelectedSubCategories([]);
@@ -260,7 +292,7 @@ export function ReportsPage() {
                       >
                         <Text fontSize="sm" color="cream.200" fontWeight="medium">Select All</Text>
                       </Checkbox>
-                      {categoryData.map((cat) => (
+                      {visibleCategories.map((cat) => (
                         <Box key={cat.category}>
                           <Checkbox
                             isChecked={selectedCategories.includes(cat.category)}
@@ -294,6 +326,9 @@ export function ReportsPage() {
                           ))}
                         </Box>
                       ))}
+                          </>
+                        );
+                      })()}
                     </Stack>
                   )}
                 </VStack>

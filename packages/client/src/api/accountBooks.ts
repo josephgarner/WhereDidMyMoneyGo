@@ -66,6 +66,7 @@ export interface ReportFilters {
   accountIds?: string[];
   categories?: string[];
   subCategories?: string[];
+  excludeCategories?: string[];
   startDate?: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
 }
@@ -498,6 +499,10 @@ export const accountBooksApi = {
       filters.categories.forEach(cat => params.append('categories', cat));
     }
 
+    if (filters?.excludeCategories && filters.excludeCategories.length > 0) {
+      filters.excludeCategories.forEach(cat => params.append('excludeCategories', cat));
+    }
+
     if (filters?.startDate) {
       params.append('startDate', filters.startDate);
     }
@@ -534,6 +539,9 @@ export const accountBooksApi = {
     }
     if (filters?.subCategories && filters.subCategories.length > 0) {
       filters.subCategories.forEach(sc => params.append('subCategories', sc));
+    }
+    if (filters?.excludeCategories && filters.excludeCategories.length > 0) {
+      filters.excludeCategories.forEach(cat => params.append('excludeCategories', cat));
     }
     if (filters?.startDate) {
       params.append('startDate', filters.startDate);

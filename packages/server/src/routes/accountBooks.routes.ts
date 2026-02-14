@@ -585,12 +585,13 @@ router.get("/:id/categories", async (req, res) => {
 router.get("/:id/reports", async (req, res) => {
   try {
     const { id: accountBookId } = req.params;
-    const { accountIds, categories, startDate, endDate } = req.query;
+    const { accountIds, categories, excludeCategories, startDate, endDate } = req.query;
 
     logger.info("Reports endpoint hit", {
       accountBookId,
       accountIds,
       categories,
+      excludeCategories,
       startDate,
       endDate,
       fullUrl: req.originalUrl,
@@ -616,6 +617,16 @@ router.get("/:id/reports", async (req, res) => {
       if (categoryArray.length > 0) {
         conditions.push(
           sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
+        );
+      }
+    }
+
+    // Exclude categories if provided
+    if (excludeCategories) {
+      const excludeArray = Array.isArray(excludeCategories) ? excludeCategories : [excludeCategories];
+      if (excludeArray.length > 0) {
+        conditions.push(
+          sql`${transactions.category} NOT IN (${sql.join(excludeArray.map(cat => sql`${cat}`), sql`, `)})`
         );
       }
     }
@@ -663,7 +674,7 @@ router.get("/:id/reports", async (req, res) => {
 router.get("/:id/reports/by-category", async (req, res) => {
   try {
     const { id: accountBookId } = req.params;
-    const { accountIds, categories, subCategories, startDate, endDate } = req.query;
+    const { accountIds, categories, excludeCategories, subCategories, startDate, endDate } = req.query;
 
     // Build where conditions
     const conditions = [eq(transactions.accountBookId, accountBookId)];
@@ -682,6 +693,15 @@ router.get("/:id/reports/by-category", async (req, res) => {
       if (categoryArray.length > 0) {
         conditions.push(
           sql`${transactions.category} IN (${sql.join(categoryArray.map(cat => sql`${cat}`), sql`, `)})`
+        );
+      }
+    }
+
+    if (excludeCategories) {
+      const excludeArray = Array.isArray(excludeCategories) ? excludeCategories : [excludeCategories];
+      if (excludeArray.length > 0) {
+        conditions.push(
+          sql`${transactions.category} NOT IN (${sql.join(excludeArray.map(cat => sql`${cat}`), sql`, `)})`
         );
       }
     }
